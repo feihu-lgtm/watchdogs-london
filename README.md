@@ -25,6 +25,27 @@ data/default-user/characters/看门狗：伦敦/
 
 预设除专为本卡调优的「英式早餐」外，亦提供底稿「【小猫之神】4.0」（完整保留 64 条原版提示词，仅剥离外部 Catbox 字体与粉色主题 CSS，折叠栏原生纯净渲染）。资源可在 [GitHub Releases (v1.0)](https://github.com/feihu-lgtm/watchdogs-london/releases/tag/v1.0) 或发布页下载。
 
+## 伦敦伴读原声 (OST)
+
+精选十四首冷战谍战、伦敦阴雨与网安算力原声，网易云音乐均可收听：
+
+| 场景氛围 | 曲目与艺术家 | 专辑 / 出处 | 网易云 ID |
+| :--- | :--- | :--- | :--- |
+| 机房算力 / 算法天网 | Lorne Balfe - The Entity | 《碟中谍7：致命清算》 | [2059054982](https://music.163.com/#/song?id=2059054982) |
+| 高科技静默潜入 | Danny Elfman - The Heist | 《碟中谍1》 | [473187110](https://music.163.com/#/song?id=473187110) |
+| 伦敦街头突围追逐 | Lorne Balfe - Stairs and Rooftops | 《碟中谍6：全面瓦解》 | [1294165108](https://music.163.com/#/song?id=1294165108) |
+| 西敏市雨夜密会 | Joe Kraemer - A Foggy Night in London | 《碟中谍5：神秘国度》 | [33728269](https://music.163.com/#/song?id=33728269) |
+| DedSec 街头抵抗 | Stephen Barton - Welcome to the Resistance | 《看门狗：军团》 | [1803518592](https://music.163.com/#/song?id=1803518592) |
+| 南伦敦雨夜碎拍 | Burial - Archangel | 《Untrue》 | [16640371](https://music.163.com/#/song?id=16640371) |
+| 冷战特工暗斗 | Alberto Iglesias - Tinker Tailor Soldier Spy | 《锅匠，裁缝，士兵，间谍》 | [990303](https://music.163.com/#/song?id=990303) |
+| 高压监视心跳 | Archive - Bullets | 《Controlling Crowds》 | [3884715](https://music.163.com/#/song?id=3884715) |
+| 重装装甲尾随 | Massive Attack - Angel | 《Mezzanine》 | [21252137](https://music.163.com/#/song?id=21252137) |
+| 神经脉冲潜行 | Jon Hopkins - Open Eye Signal | 《Immunity》 | [26321472](https://music.163.com/#/song?id=26321472) |
+| 残破仿生人哀歌 | Lorn - Acid Rain | 《The Maze To Nowhere》 | [1497854235](https://music.163.com/#/song?id=1497854235) |
+| 十一月泰晤士河晨雾 | Max Richter - November | 《Memoryhouse》 | [16964075](https://music.163.com/#/song?id=16964075) |
+| 终端屏幕冷光 | Trent Reznor / Atticus Ross - Hand Covers Bruise | 《社交网络》 | [1061850](https://music.163.com/#/song?id=1061850) |
+| 白厅突围困兽斗 | UNKLE - Burn My Shadow | 《War Stories》 | [21986980](https://music.163.com/#/song?id=21986980) |
+
 ## 授权与致谢
 
 作者：小狐狸；商业用途不可以；二改可以；二改后不标注出处发布不可以。
