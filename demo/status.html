@@ -348,6 +348,19 @@
     .ov .inspect { order: 3; }
     .ov .view { padding: 16px 14px 24px; }
   }
+  /* 手机横屏：宽过 640 但全屏地图只有两百多像素高，初始视野缩得很远，照搬竖屏的小号点和字，地标名字放大后再露 */
+  @media (min-width: 641px) and (max-height: 520px) {
+    .mapbox.zoomable .map .dlab .en, .mapbox.zoomable .map .mark text { display: none; }
+    .mapbox.zoomable .map.zoomed .mark text { display: inline; }
+    .mapbox.zoomable .map .dlab .zh, .mapbox.zoomable .map .dlab .zh2 { font-size: 15px; stroke-width: 3px; }
+    .mapbox.zoomable .map .mark circle { r: 3.5px; }
+    .mapbox.zoomable .map .mark text { font-size: 12px; stroke-width: 3px; }
+    .mapbox.zoomable .map .job .dot { r: 9px; }
+    .mapbox.zoomable .map .job .halo { r: 14px; }
+    .mapbox.zoomable .map .job text { font-size: 12px; transform: translateY(-1px); }
+    .mapbox.zoomable .map .base text { font-size: 11px; stroke-width: 3px; }
+    .mapbox.zoomable .map .base .dia { transform: scale(0.75); }
+  }
   @media (prefers-reduced-motion: reduce) { .view { animation: none; } }
 </style>
 </head>
