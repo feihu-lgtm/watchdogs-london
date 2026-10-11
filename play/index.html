@@ -15,6 +15,11 @@
     <div class="drawer-content">
       <h3>API 连接</h3>
       <p class="lt-note">填一个 OpenAI 兼容的接口。密钥只存在这台设备的浏览器里，请求从你的浏览器直接发给接口，不经过任何别的服务器。接口要允许浏览器跨域访问（CORS），大多数中转站和 DeepSeek、OpenRouter、Gemini 的兼容接口都可以。</p>
+      <div class="lt-row"><span>配置方案</span>
+        <div class="lt-inline"><select id="lt-prof" class="text_pole"><option value="">（当前填的，未存成方案）</option></select><button type="button" class="menu_button" id="lt-prof-save">存为方案</button><button type="button" class="menu_button" id="lt-prof-del">删除</button></div>
+      </div>
+      <div class="lt-inline lt-prof-io"><button type="button" class="menu_button" id="lt-prof-export">导出方案</button><button type="button" class="menu_button" id="lt-prof-import">导入方案</button><label class="checkbox_label"><input type="checkbox" id="lt-prof-key"><span>导出时带上密钥</span></label><input type="file" id="lt-prof-file" accept=".json" hidden></div>
+      <p class="lt-note">方案存在这台设备的浏览器里，切换方案会把下面几项和检定的裁判模型一起换掉。导出默认不带密钥，发给别人也不会漏 key；自己换电脑用就勾上。</p>
       <label class="lt-row"><span>常用接口</span>
         <select id="lt-provider" class="text_pole">
           <option value="">自己填</option>

@@ -607,6 +607,84 @@ $('#lt-provider').addEventListener('change', (e) => {
     fields.url.value = api.url = e.target.value;
     saveSettings();
 });
+/* 配置方案：一套接口设置（地址、密钥、模型、上下文、回复上限、流式、裁判模型）存成一个方案，切换、导入导出 */
+settings.profiles ??= [];
+const PROF_KEYS = ['url', 'key', 'model', 'ctx', 'max', 'stream'];
+const profSel = $('#lt-prof');
+function snapshot() {
+    const o = Object.fromEntries(PROF_KEYS.map((k) => [k, api[k] ?? '']));
+    o.judge = settings.check.model || '';
+    return o;
+}
+function drawProfiles() {
+    profSel.innerHTML = '<option value="">（当前填的，未存成方案）</option>'
+        + settings.profiles.map((p) => `<option value="${esc(p.name)}">${esc(p.name)}${p.api.model ? ' · ' + esc(p.api.model) : ''}</option>`).join('');
+    profSel.value = settings.profiles.some((p) => p.name === settings.profile) ? settings.profile : '';
+}
+function applyProfile(p) {
+    for (const k of PROF_KEYS) api[k] = p.api[k] ?? (k === 'stream' ? true : '');
+    settings.check.model = p.api.judge || '';
+    for (const [k, el] of Object.entries(fields)) el.value = api[k] ?? '';
+    $('#lt-stream').checked = api.stream !== false;
+    $('#lt-ck-model').value = settings.check.model;
+    settings.profile = p.name;
+    saveSettings();
+    status(`换成了方案「${p.name}」`, true);
+}
+profSel.addEventListener('change', () => {
+    const p = settings.profiles.find((x) => x.name === profSel.value);
+    if (p) applyProfile(p); else { settings.profile = ''; saveSettings(); }
+});
+$('#lt-prof-save').addEventListener('click', () => {
+    const name = prompt('方案叫什么？同名会覆盖。', settings.profile || (api.model ? api.model : '我的接口'))?.trim();
+    if (!name) return;
+    const i = settings.profiles.findIndex((p) => p.name === name);
+    const rec = { name, api: snapshot(), at: Date.now() };
+    if (i >= 0) settings.profiles[i] = rec; else settings.profiles.push(rec);
+    settings.profile = name;
+    saveSettings();
+    drawProfiles();
+    toast('success', `存好了方案「${name}」`);
+});
+$('#lt-prof-del').addEventListener('click', () => {
+    const name = profSel.value;
+    if (!name || !confirm(`删掉方案「${name}」？当前填着的设置不动。`)) return;
+    settings.profiles = settings.profiles.filter((p) => p.name !== name);
+    settings.profile = '';
+    saveSettings();
+    drawProfiles();
+});
+$('#lt-prof-export').addEventListener('click', () => {
+    if (!settings.profiles.length) { toast('warning', '还没有方案，先「存为方案」'); return; }
+    const withKey = $('#lt-prof-key').checked;
+    const profiles = settings.profiles.map((p) => ({ ...p, api: withKey ? p.api : { ...p.api, key: '' } }));
+    download(JSON.stringify({ kind: 'watchdogs-london-profiles', v: 1, profiles }, null, 2), `${card.name} - 接口方案${withKey ? '（含密钥）' : ''} - ${stamp()}.json`, 'application/json');
+});
+$('#lt-prof-import').addEventListener('click', () => $('#lt-prof-file').click());
+$('#lt-prof-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+        const data = JSON.parse(await file.text());
+        const list = (data?.kind === 'watchdogs-london-profiles' ? data.profiles : null)?.filter((p) => p?.name && p.api);
+        if (!list?.length) throw new Error('这不是本页导出的方案文件');
+        for (const p of list) {
+            const i = settings.profiles.findIndex((x) => x.name === p.name);
+            // 导入的方案没带密钥时，留着本机同名方案里的那把
+            const key = p.api.key || (i >= 0 ? settings.profiles[i].api.key : '') || '';
+            const rec = { name: String(p.name), api: { ...Object.fromEntries(PROF_KEYS.map((k) => [k, p.api[k] ?? ''])), judge: p.api.judge || '', key }, at: p.at || Date.now() };
+            if (i >= 0) settings.profiles[i] = rec; else settings.profiles.push(rec);
+        }
+        saveSettings();
+        drawProfiles();
+        toast('success', `导入了 ${list.length} 个方案，在「配置方案」里选`);
+    } catch (err) { toast('error', '导入失败：' + err.message); }
+});
+// 手改了任何一项，就不再算是那个方案了
+for (const el of [...Object.values(fields), $('#lt-stream')]) el.addEventListener('input', () => { if (profSel.value) { profSel.value = ''; settings.profile = ''; saveSettings(); } });
+drawProfiles();
+
 /* 检定面板 */
 const ck = settings.check;
 for (const [id, k] of [['lt-ck-on', 'on'], ['lt-ck-anim', 'anim'], ['lt-ck-reroll', 'reroll']]) {

@@ -142,3 +142,5 @@ body.lt-judging #form_sheld::before { content: '裁判在看这一步要不要�
 .lt-ck-table span { color: #9097a0; }
 @media (prefers-reduced-motion: reduce) { .lt-dice-ov, .lt-dice-ov.out, .lt-dice-ov .lt-check.done .lt-ck-roll strong { animation: none; } }
 @media (max-width: 640px) { .lt-ck-body { flex-direction: column; align-items: stretch; } .lt-ck-roll { justify-content: space-between; } }
+.lt-prof-io { margin: -2px 0 4px 94px; }
+@media (max-width: 640px) { .lt-prof-io { margin-left: 0; } }
