@@ -261,7 +261,23 @@ function headers() {
     return h;
 }
 
-async function complete(messages, { stream = false, max_tokens, signal, onDelta, model, override } = {}) {
+// 预设会把整段提示词压成最后一条 AI 消息（预填）。Gemini 的新模型等接口不收以 AI 消息结尾的请求，
+// 碰到就在末尾补一句用户消息，并记在接口设置里，下次直接这样发
+const PREFILL_REJECT = /ending with a model turn|must end with a user|last message must (?:be|have)[^"]*user|assistant (?:message )?prefill|does not support (?:assistant )?prefill/i;
+const endWithUser = (messages) => (messages.at(-1)?.role === 'assistant' ? [...messages, { role: 'user', content: '接着往下写。' }] : messages);
+async function complete(messages, opts = {}) {
+    try {
+        return await completeOnce(settings.api.noPrefill ? endWithUser(messages) : messages, opts);
+    } catch (e) {
+        if (settings.api.noPrefill || messages.at(-1)?.role !== 'assistant' || !PREFILL_REJECT.test(e.message)) throw e;
+        settings.api.noPrefill = true;
+        $('#lt-noprefill') && ($('#lt-noprefill').checked = true);
+        saveSettings();
+        toast('info', '这个接口不收 AI 预填，已经自动改成在末尾补一句用户消息，以后都这样发（API 连接里可以改）');
+        return completeOnce(endWithUser(messages), opts);
+    }
+}
+async function completeOnce(messages, { stream = false, max_tokens, signal, onDelta, model, override } = {}) {
     if (!apiReady()) throw new Error('还没填 API：左边“API 连接”里填好接口地址和模型');
     const body = { ...game.sampling(), ...override, model: (model || settings.api.model).trim(), messages, stream };
     if (max_tokens) body.max_tokens = max_tokens;
@@ -623,6 +639,8 @@ for (const [k, el] of Object.entries(fields)) {
 }
 $('#lt-stream').checked = api.stream !== false;
 $('#lt-stream').addEventListener('change', (e) => { api.stream = e.target.checked; saveSettings(); });
+$('#lt-noprefill').checked = !!api.noPrefill;
+$('#lt-noprefill').addEventListener('change', (e) => { api.noPrefill = e.target.checked; saveSettings(); });
 $('#lt-user').value = settings.user || '';
 $('#lt-user').addEventListener('input', (e) => { settings.user = e.target.value; saveSettings(); });
 $('#lt-provider').addEventListener('change', (e) => {
@@ -632,7 +650,7 @@ $('#lt-provider').addEventListener('change', (e) => {
 });
 /* 配置方案：一套接口设置（地址、密钥、模型、上下文、回复上限、流式、裁判模型）存成一个方案，切换、导入导出 */
 settings.profiles ??= [];
-const PROF_KEYS = ['url', 'key', 'model', 'ctx', 'max', 'stream'];
+const PROF_KEYS = ['url', 'key', 'model', 'ctx', 'max', 'stream', 'noPrefill'];
 const profSel = $('#lt-prof');
 function snapshot() {
     const o = Object.fromEntries(PROF_KEYS.map((k) => [k, api[k] ?? '']));
@@ -649,6 +667,7 @@ function applyProfile(p) {
     settings.check.model = p.api.judge || '';
     for (const [k, el] of Object.entries(fields)) el.value = api[k] ?? '';
     $('#lt-stream').checked = api.stream !== false;
+    $('#lt-noprefill').checked = !!api.noPrefill;
     $('#lt-ck-model').value = settings.check.model;
     settings.profile = p.name;
     saveSettings();

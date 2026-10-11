@@ -6,7 +6,7 @@
 <title>看门狗：伦敦 · 轻量酒馆</title>
 <meta name="description" content="《看门狗：伦敦》角色卡的网页版：填上自己的 API 就能在浏览器里玩，存档留在本机。">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
-<link rel="stylesheet" href="tavern.css?v=20261011">
+<link rel="stylesheet" href="tavern.css?v=20261011b">
 </head>
 <body class="ctos">
 <div id="top-settings-holder">
@@ -39,6 +39,7 @@
       <label class="lt-row"><span>回复上限</span><input id="lt-max" class="text_pole" type="number" min="256" step="256" placeholder="跟预设走"></label>
       <p class="lt-note">两项空着就照预设来。接口报 max_tokens 不对时把回复上限改小，比如 DeepSeek 填 8192；模型的上下文窗口比预设小的，上下文上限填模型的窗口大小。</p>
       <label class="checkbox_label"><input type="checkbox" id="lt-stream"><span>流式输出（边写边读）</span></label>
+      <label class="checkbox_label"><input type="checkbox" id="lt-noprefill"><span>接口不收 AI 预填（Gemini 报 “ending with a model turn” 时勾上；碰到会自动勾）</span></label>
       <div class="lt-inline"><button type="button" class="menu_button" id="lt-test">测试连接</button><span id="lt-status" class="lt-note"></span></div>
       <hr>
       <label class="lt-row"><span>你的名字</span><input id="lt-user" class="text_pole" placeholder="道尔顿"></label>
@@ -132,6 +133,6 @@
   </div>
 </div>
 <div id="toast-container"></div>
-<script type="module" src="tavern.js?v=20261011"></script>
+<script type="module" src="tavern.js?v=20261011b"></script>
 </body>
 </html>
