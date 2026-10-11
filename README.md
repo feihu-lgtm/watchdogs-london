@@ -23,6 +23,8 @@ data/default-user/characters/看门狗：伦敦/
 
 不放立绘包也能游玩，页面会自动从 CDN 获取立绘。
 
+资源也可在 [GitHub Releases (v1.0)](https://github.com/feihu-lgtm/watchdogs-london/releases/tag/v1.0) 下载。
+
 ## 授权与致谢
 
 作者：小狐狸；商业用途不可以；二改可以；二改后不标注出处发布不可以。
