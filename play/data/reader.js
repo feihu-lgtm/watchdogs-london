@@ -2215,6 +2215,19 @@ function mountRail() {
    现在正则只把占位符抹掉，这里挂一个 iframe，数据变了就在原地重画，不再新建。
    状态栏页面原本跑在酒馆助手的消息 iframe 里，靠 getVariables / getCurrentMessageId 取数，这里用同名的两个函数接上。
    ------------------------------------------------------------ */
+// 状态栏里解锁技能要写变量：写回最新那条带变量的消息（和 hudVars 读的是同一条），再存档
+function hudWrite(all) {
+    const chat = ctx().chat ?? [];
+    for (let i = chat.length - 1; i >= 0; i--) {
+        const m = chat[i];
+        const v = m?.variables?.[m.swipe_id ?? 0];
+        if (!v?.stat_data) continue;
+        m.variables[m.swipe_id ?? 0] = { ...v, ...all };
+        (ctx().saveChat ?? ctx().saveChatDebounced ?? ctx().saveMetadataDebounced)?.call(ctx());
+        return true;
+    }
+    return false;
+}
 function hudVars() {
     const chat = ctx().chat ?? [];
     for (let i = chat.length - 1; i >= 0; i--) {
@@ -2290,10 +2303,11 @@ function mountHud() {
     const sheld = document.getElementById('sheld');
     const form = document.getElementById('form_sheld');
     if (!sheld || !form || document.getElementById('ctr-hud')) return;
-    W.__ctosHud = { vars: hudVars, mid: () => (ctx().chat?.length ?? 1) - 1 };
+    W.__ctosHud = { vars: hudVars, mid: () => (ctx().chat?.length ?? 1) - 1, write: hudWrite };
     bye.push(() => { delete W.__ctosHud; });
     const bridge = '<script>window.getVariables=function(){return parent.__ctosHud&&parent.__ctosHud.vars()};'
-        + 'window.getCurrentMessageId=function(){return parent.__ctosHud?parent.__ctosHud.mid():0};<\/script>';
+        + 'window.getCurrentMessageId=function(){return parent.__ctosHud?parent.__ctosHud.mid():0};'
+        + 'window.replaceVariables=function(v){return parent.__ctosHud&&parent.__ctosHud.write(v)};<\/script>';
     const frame = document.createElement('iframe');
     frame.id = 'ctr-hud';
     frame.title = 'ctOS 状态栏';

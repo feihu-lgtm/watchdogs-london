@@ -116,6 +116,8 @@ const context = {
     getCurrentChatId: () => state.id,
     get chatMetadata() { return state.meta; },
     saveMetadataDebounced: saveSoon,
+    // 状态栏解锁技能改的是消息上的变量，和酒馆一样走 saveChat 存档
+    saveChat: saveSoon,
     get extensionSettings() { return settings.ext; },
     saveSettingsDebounced: saveSettings,
     eventSource, eventTypes, event_types: eventTypes,
