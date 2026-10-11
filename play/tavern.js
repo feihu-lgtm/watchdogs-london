@@ -831,6 +831,15 @@ $('#lt-file').addEventListener('change', async (e) => {
 /* ------------------------------------------------------------
    DedSec：粉丝、成就、手气和 DalPost（算法和版面在 dedsec.js）
    ------------------------------------------------------------ */
+// 浏览器可能还缓存着旧版 index.html（GitHub Pages 缓存十分钟），新脚本要的面板不在页面上就自己补上，别让整页卡死
+(function ensureDom() {
+    if (!$('#lt-dedsec')) {
+        const html = `<div class="drawer" id="lt-dedsec" style="--zh:'DedSec';--code:'FANS'"><div class="drawer-toggle"><div class="drawer-icon fa-solid fa-heart"></div></div><div class="drawer-content"><h3>DedSec · 粉丝与 DalPost</h3><div id="lt-ds-panel"></div></div></div>`;
+        const ost = $('#lt-ost');
+        if (ost) ost.insertAdjacentHTML('beforebegin', html); else $('#top-settings-holder').insertAdjacentHTML('beforeend', html);
+    }
+    if (!$('#lt-amb-ui')) ($('#lt-ost .drawer-content') ?? $('#extensions_settings'))?.insertAdjacentHTML('beforeend', '<hr><div id="lt-amb-ui"></div>');
+})();
 const postOf = (msg) => (msg && !msg.is_user ? msg.posts?.[msg.swipe_id ?? 0] : null);
 function drawPost(id) {
     const el = chatEl.querySelector(`.mes[mesid="${id}"] .mes_block`);
@@ -909,6 +918,9 @@ chatEl.addEventListener('click', (e) => {
 let ds = { total: 0, got: new Map(), gains: [], checks: [], posts: [] };
 let dsTab = 'fans';
 function refreshDs(announce) {
+    try { syncDs(announce); } catch (e) { console.error('[轻量酒馆] DedSec 统计出错，不影响游戏', e); }
+}
+function syncDs(announce) {
     ds = dedsec.tally(state.chat);
     const mem = state.meta.dedsec ??= { seen: [], last: 0 };
     const fresh = [...ds.got.keys()].filter((k) => !mem.seen.includes(k));
@@ -921,7 +933,7 @@ function refreshDs(announce) {
         mem.last = ds.total;
         saveSoon();
     }
-    if ($('#lt-dedsec .drawer-content').classList.contains('openDrawer')) drawDs();
+    if ($('#lt-dedsec .drawer-content')?.classList.contains('openDrawer')) drawDs();
 }
 function fansPop(total, gain) {
     let el = $('#lt-fans-pop');
@@ -1080,11 +1092,13 @@ function initOst() {
 initOst();
 
 /* 环境氛围：页眉的时间地点上色、雨丝、雨声和城市底噪 */
-const amb = createAmbience({ settings, save: saveSettings, mount: $('#lt-amb-ui') });
-for (const ev of [eventTypes.CHAT_CHANGED, eventTypes.MESSAGE_SWIPED, eventTypes.MESSAGE_RECEIVED, eventTypes.MESSAGE_EDITED, eventTypes.MESSAGE_DELETED]) {
-    eventSource.on(ev, () => amb.update(state.chat));
-}
-eventSource.on(eventTypes.STREAM_TOKEN_RECEIVED, () => amb.update(state.chat, { soon: true }));
-amb.update(state.chat);
+try {
+    const amb = createAmbience({ settings, save: saveSettings, mount: $('#lt-amb-ui') ?? document.createElement('div') });
+    for (const ev of [eventTypes.CHAT_CHANGED, eventTypes.MESSAGE_SWIPED, eventTypes.MESSAGE_RECEIVED, eventTypes.MESSAGE_EDITED, eventTypes.MESSAGE_DELETED]) {
+        eventSource.on(ev, () => amb.update(state.chat));
+    }
+    eventSource.on(eventTypes.STREAM_TOKEN_RECEIVED, () => amb.update(state.chat, { soon: true }));
+    amb.update(state.chat);
+} catch (e) { console.error('[轻量酒馆] 环境氛围没起来，不影响游戏', e); }
 
 if (!apiReady()) openDrawer('lt-api');
