@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>看门狗：伦敦 · 轻量酒馆</title>
+<meta name="description" content="《看门狗：伦敦》角色卡的网页版：填上自己的 API 就能在浏览器里玩，存档留在本机。">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+<link rel="stylesheet" href="tavern.css">
+</head>
+<body class="ctos">
+<div id="top-settings-holder">
+  <div class="drawer" id="lt-api" style="--zh:'API 连接';--code:'LINK'">
+    <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-plug"></div></div>
+    <div class="drawer-content">
+      <h3>API 连接</h3>
+      <p class="lt-note">填一个 OpenAI 兼容的接口。密钥只存在这台设备的浏览器里，请求从你的浏览器直接发给接口，不经过任何别的服务器。接口要允许浏览器跨域访问（CORS），大多数中转站和 DeepSeek、OpenRouter、Gemini 的兼容接口都可以。</p>
+      <label class="lt-row"><span>常用接口</span>
+        <select id="lt-provider" class="text_pole">
+          <option value="">自己填</option>
+          <option value="https://api.deepseek.com/v1">DeepSeek</option>
+          <option value="https://openrouter.ai/api/v1">OpenRouter</option>
+          <option value="https://generativelanguage.googleapis.com/v1beta/openai">Gemini（OpenAI 兼容）</option>
+          <option value="https://api.openai.com/v1">OpenAI</option>
+          <option value="https://dashscope.aliyuncs.com/compatible-mode/v1">通义千问（百炼）</option>
+        </select>
+      </label>
+      <label class="lt-row"><span>接口地址</span><input id="lt-url" class="text_pole" type="url" placeholder="https://…/v1" autocomplete="off"></label>
+      <label class="lt-row"><span>密钥</span><input id="lt-key" class="text_pole" type="password" placeholder="sk-…" autocomplete="off"></label>
+      <div class="lt-row"><span>模型</span>
+        <div class="lt-inline"><input id="lt-model" class="text_pole" list="lt-models" placeholder="比如 deepseek-chat" autocomplete="off"><datalist id="lt-models"></datalist><button type="button" class="menu_button" id="lt-fetch">拉取列表</button></div>
+      </div>
+      <label class="lt-row"><span>上下文上限</span><input id="lt-ctx" class="text_pole" type="number" min="4000" step="1000" placeholder="跟预设走"></label>
+      <label class="lt-row"><span>回复上限</span><input id="lt-max" class="text_pole" type="number" min="256" step="256" placeholder="跟预设走"></label>
+      <p class="lt-note">两项空着就照预设来。接口报 max_tokens 不对时把回复上限改小，比如 DeepSeek 填 8192；模型的上下文窗口比预设小的，上下文上限填模型的窗口大小。</p>
+      <label class="checkbox_label"><input type="checkbox" id="lt-stream"><span>流式输出（边写边读）</span></label>
+      <div class="lt-inline"><button type="button" class="menu_button" id="lt-test">测试连接</button><span id="lt-status" class="lt-note"></span></div>
+      <hr>
+      <label class="lt-row"><span>你的名字</span><input id="lt-user" class="text_pole" placeholder="道尔顿"></label>
+      <p class="lt-note">预设「英式早餐」、角色卡和内嵌世界书都已经装好，不用另外导入。</p>
+    </div>
+  </div>
+  <div class="drawer" id="lt-saves" style="--zh:'存档';--code:'SAVE'">
+    <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-floppy-disk"></div></div>
+    <div class="drawer-content">
+      <h3>存档</h3>
+      <p class="lt-note">每一轮都会自动存进这台设备的浏览器。换设备时导出 .jsonl 带走，SillyTavern 的聊天记录也能导进来。</p>
+      <div class="lt-inline"><button type="button" class="menu_button" id="lt-new">新开一局</button><button type="button" class="menu_button" id="lt-export">导出当前</button><button type="button" class="menu_button" id="lt-import">导入 .jsonl</button><input type="file" id="lt-file" accept=".jsonl,.json" hidden></div>
+      <div id="lt-list"></div>
+    </div>
+  </div>
+  <div class="drawer" id="extensions-settings-button">
+    <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-cubes"></div></div>
+    <div class="drawer-content">
+      <h3>阅读器</h3>
+      <div id="extensions_settings"></div>
+    </div>
+  </div>
+  <div class="drawer" id="lt-about" style="--zh:'关于';--code:'INFO';order:8">
+    <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-circle-info"></div></div>
+    <div class="drawer-content">
+      <h3>看门狗：伦敦 · 轻量酒馆</h3>
+      <p>这是《看门狗：伦敦》角色卡的网页版。角色卡、内嵌世界书、预设「英式早餐」、MVU 变量、状态栏和 ctOS 阅读器都装在页面里，你只需要一个 API。</p>
+      <p>想在 SillyTavern 里玩，去<a href="../">发布页</a>下载角色卡和预设。</p>
+      <p class="lt-note">作者：小狐狸。预设「英式早餐」底稿来自 SoliUmbra 的小猫之神。同人二创，原作育碧《看门狗：军团》。</p>
+    </div>
+  </div>
+</div>
+<div id="sheld">
+  <div id="chat"></div>
+  <div id="form_sheld">
+    <div id="send_form">
+      <div id="nonQRFormItems">
+        <div id="leftSendForm"><div id="lt-regen" class="fa-solid fa-rotate" title="重新生成最后一条"></div></div>
+        <textarea id="send_textarea" rows="1" placeholder="你要做什么、说什么……" autocomplete="off"></textarea>
+        <div id="rightSendForm"><div id="mes_stop" class="fa-solid fa-circle-stop" title="停止" hidden></div><div id="send_but" class="fa-solid fa-paper-plane" title="发送"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script type="module" src="tavern.js"></script>
+</body>
+</html>
