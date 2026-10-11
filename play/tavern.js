@@ -9,10 +9,22 @@ const $ = (s, root = document) => root.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const clone = (o) => (o === undefined ? o : structuredClone(o));
 
-const [card, preset] = await Promise.all(['data/card.json', 'data/preset.json'].map((u) => fetch(u).then((r) => {
-    if (!r.ok) throw new Error(u + ' ' + r.status);
-    return r.json();
-})));
+// 卡和预设一共几百 KB，手机网络断一下就会失败：不白屏，给一句话和一个重试按钮
+async function loadData() {
+    for (let i = 0; ; i++) {
+        try {
+            return await Promise.all(['data/card.json', 'data/preset.json'].map((u) => fetch(u, { cache: i ? 'reload' : 'default' }).then((r) => {
+                if (!r.ok) throw new Error(u + ' 返回 ' + r.status);
+                return r.json();
+            })));
+        } catch (e) {
+            if (i < 1) continue; // 自动再试一次
+            document.body.insertAdjacentHTML('beforeend', `<div class="lt-boot-fail"><b>没加载出来</b><p>${esc(e.message)}</p><p>多半是网络断了一下。存档在这台设备的浏览器里，不会丢。</p><button type="button" class="menu_button" onclick="location.reload()">重试</button></div>`);
+            throw e;
+        }
+    }
+}
+const [card, preset] = await loadData();
 const game = createGame({ card, preset });
 
 /* ------------------------------------------------------------

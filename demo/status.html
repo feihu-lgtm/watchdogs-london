@@ -361,6 +361,9 @@
     .mapbox.zoomable .map .base text { font-size: 11px; stroke-width: 3px; }
     .mapbox.zoomable .map .base .dia { transform: scale(0.75); }
   }
+  /* 手机稳定性：横屏不自动放大文字；长串报错和说明能折行，不顶破框子 */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  .ct :is(.inspect p, .inspect h6, .note, .row .d, .row .n, .wound p, .goal .v, .mood, .fact .v, .op-head .o, .stage .st) { overflow-wrap: anywhere; }
   @media (prefers-reduced-motion: reduce) { .view { animation: none; } }
 </style>
 </head>
@@ -1036,6 +1039,11 @@
     mapView = mapHome = null; ptrs = {}; dragged = false;
   }
   // 这条消息被重绘或删掉时，顺手把全屏层一起收掉
+  // 转屏或窗口变了：全屏地图按新的宽高比重算视野（比例变了 setupZoom 会把视野重置成初始那一幅）。
+  // 阅读器在主页面听转屏，转过来调这里；单独打开预览页时自己听
+  window.__ctosRelayout = function () { if (full) setupZoom(full.mount); };
+  window.addEventListener('resize', window.__ctosRelayout);
+  window.addEventListener('orientationchange', function () { setTimeout(window.__ctosRelayout, 350); });
   window.addEventListener('pagehide', closeFull);
   window.addEventListener('unload', closeFull);
   app.addEventListener('click', onClick);

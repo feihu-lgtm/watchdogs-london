@@ -72,7 +72,7 @@ body.lt-busy #send_but { display: none !important; }
 .lt-save .menu_button { min-height: 28px; padding: 0 8px; font-size: 12px; }
 
 #toast-container { position: fixed; top: 16px; right: 16px; z-index: 5000; display: grid; gap: 8px; pointer-events: none; }
-.lt-toast { max-width: 360px; padding: 10px 14px; background: #111316; border: 1px solid #383d44; color: #dcd8d0; font-size: 13px; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); pointer-events: auto; animation: lt-toast-in 200ms ease both; }
+.lt-toast { max-width: min(360px, calc(100vw - 24px)); overflow-wrap: anywhere; padding: 10px 14px; background: #111316; border: 1px solid #383d44; color: #dcd8d0; font-size: 13px; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); pointer-events: auto; animation: lt-toast-in 200ms ease both; }
 .lt-toast.error { border-color: #ff4d2e; }
 .lt-toast.success { border-color: #8fb07f; }
 @keyframes lt-toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
@@ -157,3 +157,11 @@ body.lt-judging #form_sheld::before { content: '裁判在看这一步要不要�
 .lt-ost-info small { color: #5c626a; font-size: 11px; }
 .lt-ost-link { color: #9097a0; text-decoration: none; font-size: 12px; padding: 4px 8px; border: 1px solid #262a2f; }
 .lt-ost-link:hover { color: #ebe8e2; border-color: #ff4d2e; }
+
+/* 手机稳定性：长串报错能折行；启动失败时给一句话和重试，不白屏 */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.lt-note, #lt-status, .lt-ost-info small { overflow-wrap: anywhere; }
+.lt-boot-fail { position: fixed; inset: 0; z-index: 6000; display: grid; place-content: center; gap: 12px; padding: 24px; text-align: center; background: #0b0c0e; color: #dcd8d0; font: 15px/1.7 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif; }
+.lt-boot-fail b { font-size: 20px; color: #ebe8e2; }
+.lt-boot-fail p { margin: 0; max-width: 32em; color: #9097a0; overflow-wrap: anywhere; }
+.lt-boot-fail .menu_button { justify-self: center; min-width: 120px; min-height: 40px; border: 1px solid #383d44; background: none; color: #ebe8e2; font: inherit; cursor: pointer; }
