@@ -3,6 +3,7 @@
 // ctOS 阅读器（data/reader.js，和角色卡里那份是同一份构建产物）照旧跑在一个隐藏的 iframe 里改写主页面，
 // 跟它在酒馆助手里的处境一模一样。提示词由 engine.js 按预设「英式早餐」和卡内世界书拼，变量按 MVU 的规矩更新。
 import { createGame } from './engine.js';
+import * as dice from './dice.js';
 
 const $ = (s, root = document) => root.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -23,6 +24,8 @@ const settings = (() => {
     try { s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch { s = {}; }
     s.api ??= { url: '', key: '', model: '', ctx: '', max: '', stream: true };
     s.ext ??= {};
+    // 跑团检定：on 总开关，anim 掷骰动画，model 裁判用的模型（空着就用上面那个），reroll 重新生成时重掷
+    s.check = { on: true, anim: true, model: '', reroll: false, ...s.check };
     return s;
 })();
 let settingsTimer = 0;
@@ -171,7 +174,7 @@ function mesEl(msg, id) {
       ${id > 0 ? '<div class="mes_button fa-solid fa-trash-can" data-act="delete" title="删除这一条"></div>' : ''}
     </div>
   </div>
-  <div class="mes_text">${textHtml(msg.mes)}</div>
+  <div class="mes_text">${textHtml(msg.mes)}</div>${msg.is_user && msg.extra?.check?.result && settings.check.on ? dice.cardHtml(msg.extra.check) : ''}
 </div>
 <div class="swipeRightBlock"><div class="swipe_right fa-solid fa-chevron-right" title="下一版 / 重新生成"></div><div class="swipes-counter"></div></div>`;
     return el;
@@ -240,9 +243,9 @@ function headers() {
     return h;
 }
 
-async function complete(messages, { stream = false, max_tokens, signal, onDelta } = {}) {
+async function complete(messages, { stream = false, max_tokens, signal, onDelta, model, override } = {}) {
     if (!apiReady()) throw new Error('还没填 API：左边“API 连接”里填好接口地址和模型');
-    const body = { ...game.sampling(), model: settings.api.model.trim(), messages, stream };
+    const body = { ...game.sampling(), ...override, model: (model || settings.api.model).trim(), messages, stream };
     if (max_tokens) body.max_tokens = max_tokens;
     const res = await fetch(endpoint('/chat/completions'), { method: 'POST', headers: headers(), body: JSON.stringify(body), signal });
     if (!res.ok) {
@@ -290,9 +293,103 @@ function setBusy(on) {
     $('#mes_stop').hidden = !on;
 }
 
+/* ------------------------------------------------------------
+   跑团检定：发送前先问裁判要不要掷骰，掷完把结果附在玩家这句话后面
+   ------------------------------------------------------------ */
+// 天问每一级技能的说明在状态栏的数据里，从阅读器那份构建产物里抠出来，裁判按它判断天问会不会
+const tianwenInfo = await fetch('data/reader.js').then((r) => r.text()).then((js) => {
+    const html = JSON.parse(js.match(/^const HUD_HTML = (".*");$/m)[1]);
+    return JSON.parse(html.match(/var STATIC = (\{.*?\});\n/s)[1]).skills ?? {};
+}).catch(() => ({}));
+
+function injuriesOf(stat) {
+    const body = stat?.['道尔顿']?.['身体组件'] ?? {};
+    const parts = Object.entries(body).filter(([k, v]) => k !== '整体' && v && (v['状态'] !== '完好' || (v['影响'] && v['影响'] !== '无')))
+        .map(([k, v]) => `${k}${v['状态'] !== '完好' ? v['状态'] : ''}，${v['影响']}`);
+    return [body['整体']?.['体力'], ...parts].filter(Boolean).join('；');
+}
+// 场面取上一段正文的结尾，去掉思考、变量更新和各种标签
+function sceneBefore(idx) {
+    for (let i = idx - 1; i >= 0; i--) {
+        const m = state.chat[i];
+        if (m.is_user) continue;
+        const t = (m.mes || '').replace(/<(think|thinking|UpdateVariable)[\s\S]*?<\/\1>/gi, '').replace(/<[^>]+>/g, '').replace(/^\s*[@&].*$/gm, '').trim();
+        return t.slice(-1200);
+    }
+    return '';
+}
+async function runCheck(uid, signal) {
+    const u = state.chat[uid];
+    const stat = statBefore(uid + 1);
+    const skills = dice.skillsOf(stat, tianwenInfo);
+    let verdict = null;
+    try {
+        const out = await complete(dice.judgePrompt({ action: u.mes, scene: sceneBefore(uid), skills, injuries: injuriesOf(stat) }), {
+            stream: false, max_tokens: 600, signal, model: settings.check.model || undefined, override: { temperature: 0.2 },
+        });
+        verdict = dice.parseJudge(out.content || out.reasoning);
+    } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        toast('warning', '裁判没回话，这一轮不检定：' + e.message);
+    }
+    const c = dice.resolve(verdict, skills);
+    u.extra = { ...u.extra, check: c ?? { none: true, t: Date.now() } };
+    if (c) { drawCheck(uid); if (settings.check.anim) await rollShow(c); }
+}
+// 写作模型看到的聊天：玩家那句话后面附上检定结果；页面上显示的原文不动
+function withChecks(chat) {
+    return chat.map((m) => (m.is_user && m.extra?.check?.result ? { ...m, mes: m.mes + '\n\n' + dice.noteOf(m.extra.check) } : m));
+}
+function drawCheck(uid) {
+    const el = chatEl.querySelector(`.mes[mesid="${uid}"] .mes_block`);
+    if (!el) return;
+    el.querySelector('.lt-check')?.remove();
+    const c = state.chat[uid]?.extra?.check;
+    if (c?.result && settings.check.on) el.insertAdjacentHTML('beforeend', dice.cardHtml(c));
+}
+// 掷骰动画：屏幕中间亮一张检定卡，数字滚一阵再停在结果上；减少动态效果时直接出结果
+function rollShow(c) {
+    return new Promise((done) => {
+        const ov = document.createElement('div');
+        ov.className = 'lt-dice-ov';
+        ov.innerHTML = dice.cardHtml(c);
+        document.body.append(ov);
+        const card = ov.firstElementChild;
+        const em = card.querySelector('.lt-ck-roll em');
+        const still = matchMedia('(prefers-reduced-motion: reduce)').matches || c.roll == null;
+        let n = 0;
+        const spin = still ? 0 : setInterval(() => { em.textContent = String(dice.d100()).padStart(2, '0'); if (++n > 14) settle(); }, 55);
+        function settle() {
+            clearInterval(spin);
+            em.textContent = c.roll == null ? '—' : String(c.roll).padStart(2, '0');
+            card.classList.add('done');
+            setTimeout(close, 1400);
+        }
+        function close() { ov.classList.add('out'); setTimeout(() => { ov.remove(); done(); }, 220); }
+        card.classList.add('rolling');
+        ov.addEventListener('click', () => { if (card.classList.contains('done')) close(); });
+        if (still) settle();
+    });
+}
+
 async function generate(kind = 'normal') {
     if (state.busy) return;
     if (!apiReady()) { openDrawer('lt-api'); toast('warning', '先在“API 连接”里填好接口地址、密钥和模型'); return; }
+    // 先检定：这一轮回复对应的那句玩家发言，没掷过就掷；重新生成默认沿用，设置里打开重掷才再掷
+    const uid = kind === 'swipe' ? state.chat.length - 2 : state.chat.length - 1;
+    const um = state.chat[uid];
+    if (settings.check.on && um?.is_user && um.mes.trim() && (!um.extra?.check || (kind === 'swipe' && settings.check.reroll))) {
+        const jc = new AbortController();
+        state.abort = jc;
+        setBusy(true);
+        document.body.classList.add('lt-judging');
+        try { await runCheck(uid, jc.signal); } catch { /* 按了停止：这一轮不检定也不生成 */ }
+        document.body.classList.remove('lt-judging');
+        state.abort = null;
+        setBusy(false);
+        if (jc.signal.aborted) return;
+        saveSoon();
+    }
     let id, msg;
     const now = Date.now();
     if (kind === 'swipe') {
@@ -312,7 +409,7 @@ async function generate(kind = 'normal') {
         msg = { name: card.name, is_user: false, is_system: false, send_date: now, mes: '', swipes: [''], swipe_id: 0, swipe_info: [{ send_date: now }], variables: [], extra: { api: 'openai', model: settings.api.model } };
         id = appendMes(msg);
     }
-    const messages = game.buildMessages(state.chat.slice(0, id), {
+    const messages = game.buildMessages(settings.check.on ? withChecks(state.chat.slice(0, id)) : state.chat.slice(0, id), {
         userName: userName(), charName: card.name,
         ...(Number(settings.api.ctx) > 0 ? { maxContext: Number(settings.api.ctx) } : {}),
     });
@@ -510,6 +607,19 @@ $('#lt-provider').addEventListener('change', (e) => {
     fields.url.value = api.url = e.target.value;
     saveSettings();
 });
+/* 检定面板 */
+const ck = settings.check;
+for (const [id, k] of [['lt-ck-on', 'on'], ['lt-ck-anim', 'anim'], ['lt-ck-reroll', 'reroll']]) {
+    $('#' + id).checked = !!ck[k];
+    $('#' + id).addEventListener('change', (e) => {
+        ck[k] = e.target.checked;
+        saveSettings();
+        if (k === 'on') state.chat.forEach((m, i) => m.is_user && drawCheck(i));
+    });
+}
+$('#lt-ck-model').value = ck.model || '';
+$('#lt-ck-model').addEventListener('input', (e) => { ck.model = e.target.value; saveSettings(); });
+
 const status = (text, ok) => { const s = $('#lt-status'); s.textContent = text; s.className = 'lt-note ' + (ok ? 'lt-ok' : 'lt-bad'); };
 $('#lt-fetch').addEventListener('click', async () => {
     try {
@@ -535,7 +645,7 @@ async function drawSaves() {
 <div class="lt-save${s.id === state.id ? ' on' : ''}" data-id="${esc(s.id)}">
   <b>${esc(s.title || '未命名')}</b>
   <small>${fmtTime(s.updated)} · ${s.chat.length} 楼${s.id === state.id ? ' · 正在玩' : ''}</small>
-  <div class="lt-inline">${s.id === state.id ? '' : '<button type="button" class="menu_button" data-save="load">读取</button>'}<button type="button" class="menu_button" data-save="del">删除</button></div>
+  <div class="lt-inline">${s.id === state.id ? '' : '<button type="button" class="menu_button" data-save="load">读取</button>'}<button type="button" class="menu_button" data-save="export">导出</button><button type="button" class="menu_button" data-save="del">删除</button></div>
 </div>`).join('') || '<p class="lt-note">还没有存档。</p>';
 }
 $('#lt-list').addEventListener('click', async (e) => {
@@ -543,6 +653,7 @@ $('#lt-list').addEventListener('click', async (e) => {
     const id = e.target.closest('.lt-save')?.dataset.id;
     if (!act || !id || state.busy) return;
     if (act === 'load') { await saveNow(); await openSave(await getSave(id)); }
+    if (act === 'export') { if (id === state.id) await saveNow(); exportSave(await getSave(id)); }
     if (act === 'del') {
         if (!confirm('删掉这个存档？删了找不回来。')) return;
         await delSave(id);
@@ -556,15 +667,47 @@ $('#lt-new').addEventListener('click', async () => {
     await newGame();
     drawSaves();
 });
-// 导出成 SillyTavern 的聊天格式：第一行是聊天信息，往后一行一条消息
-$('#lt-export').addEventListener('click', () => {
-    const head = { user_name: userName(), character_name: card.name, create_date: new Date(state.created).toISOString(), chat_metadata: state.meta };
-    const text = [head, ...state.chat].map((x) => JSON.stringify(x)).join('\n');
+function download(text, name, type) {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([text], { type: 'application/jsonl' }));
-    a.download = `${card.name} - ${titleOf(state.chat)} - ${new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-')}.jsonl`;
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name.replace(/[\\/:*?"<>|]/g, '_');
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const stamp = () => new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+// 导出成 SillyTavern 的聊天格式：第一行是聊天信息，往后一行一条消息
+function exportSave(rec) {
+    const head = { user_name: userName(), character_name: card.name, create_date: new Date(rec.created || Date.now()).toISOString(), chat_metadata: rec.meta || {} };
+    download([head, ...rec.chat].map((x) => JSON.stringify(x)).join('\n'), `${card.name} - ${titleOf(rec.chat)} - ${stamp()}.jsonl`, 'application/jsonl');
+}
+$('#lt-export').addEventListener('click', async () => { await saveNow(); exportSave({ created: state.created, chat: state.chat, meta: state.meta }); });
+// 备份全部：所有存档打成一个 JSON；恢复时按存档 id 合并，同一局留更新的那份
+$('#lt-backup').addEventListener('click', async () => {
+    await saveNow();
+    const saves = await listSaves();
+    download(JSON.stringify({ kind: 'watchdogs-london-backup', v: 1, at: Date.now(), saves }), `${card.name} - 全部存档 - ${stamp()}.json`, 'application/json');
+    toast('success', `备份了 ${saves.length} 个存档`);
+});
+$('#lt-restore').addEventListener('click', () => $('#lt-bfile').click());
+$('#lt-bfile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file || state.busy) return;
+    try {
+        const data = JSON.parse(await file.text());
+        const saves = (data?.kind === 'watchdogs-london-backup' ? data.saves : null)?.filter((r) => r?.id && Array.isArray(r.chat));
+        if (!saves?.length) throw new Error('这不是本页导出的备份文件');
+        let added = 0, kept = 0;
+        for (const rec of saves) {
+            const old = await getSave(rec.id);
+            if (old && (old.updated || 0) >= (rec.updated || 0)) { kept++; continue; }
+            await putSave(rec);
+            added++;
+        }
+        if (saves.some((r) => r.id === state.id)) await openSave(await getSave(state.id));
+        drawSaves();
+        toast('success', `恢复了 ${added} 个存档${kept ? `，${kept} 个本机已有更新的版本，没动` : ''}`);
+    } catch (err) { toast('error', '恢复失败：' + err.message); }
 });
 $('#lt-import').addEventListener('click', () => $('#lt-file').click());
 $('#lt-file').addEventListener('change', async (e) => {

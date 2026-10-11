@@ -84,3 +84,61 @@ body.lt-busy #send_but { display: none !important; }
   .lt-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   #toast-container { top: 56px; left: 12px; right: 12px; }
 }
+
+/* ------------------------------------------------------------
+   跑团检定：玩家发言下面的检定卡，掷骰时屏幕中间亮一张大的
+   颜色沿用 ctOS 那一套：成功是暗绿，代价成功是琥珀，失败是信号橙，大失败整块橙底
+   ------------------------------------------------------------ */
+.lt-check {
+  --ck: #9097a0;
+  position: relative; margin-top: 10px; padding: 10px 12px 12px; max-width: 520px;
+  background: #0b0c0e; border: 1px solid #262a2f; border-left: 3px solid var(--ck);
+  font: 12px/1.5 'JetBrains Mono', 'SF Mono', Menlo, monospace; color: #9097a0;
+}
+.lt-check.crit { --ck: #ebe8e2; }
+.lt-check.ok { --ck: #8fb07f; }
+.lt-check.cost { --ck: #d9a441; }
+.lt-check.fail { --ck: #ff4d2e; }
+.lt-check.fumble { --ck: #ff4d2e; background: linear-gradient(90deg, rgba(255, 77, 46, .14), #0b0c0e 70%); }
+.lt-check.na { --ck: #5c626a; }
+.lt-ck-head { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.lt-ck-tag { padding: 1px 6px; background: var(--ck); color: #0b0c0e; font-weight: 700; font-size: 10px; letter-spacing: .16em; }
+.lt-ck-skill { color: #ebe8e2; font-family: 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lt-ck-lv { margin-left: auto; color: #5c626a; white-space: nowrap; }
+.lt-ck-goal { margin-top: 4px; color: #9097a0; font-family: 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif; font-size: 12.5px; }
+.lt-ck-body { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.lt-ck-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.lt-ck-meta b { color: #dcd8d0; font-weight: 500; }
+.lt-ck-roll { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.lt-ck-roll em { font: 700 26px/1 'Barlow Condensed', 'JetBrains Mono', monospace; font-style: normal; color: #ebe8e2; font-variant-numeric: tabular-nums; }
+.lt-ck-roll strong { color: var(--ck); font: 600 14px/1 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif; letter-spacing: .1em; }
+.lt-check.fumble .lt-ck-roll strong, .lt-check.crit .lt-ck-roll strong { padding: 3px 7px; background: var(--ck); color: #0b0c0e; }
+/* 成功率条：0 到成功率是成功区，往后 10 是代价区，竖线是掷出的点数 */
+.lt-ck-bar { position: relative; height: 6px; margin-top: 10px; background: #16191d; overflow: hidden; }
+.lt-ck-bar i { position: absolute; top: 0; bottom: 0; }
+.lt-ck-bar .zone { left: 0; width: var(--t); background: rgba(143, 176, 127, .35); }
+.lt-ck-bar .cost { left: var(--t); width: 10%; background: rgba(217, 164, 65, .3); }
+.lt-ck-bar .mark { left: calc(var(--r) - 1px); width: 2px; background: #ebe8e2; box-shadow: 0 0 6px #ebe8e2; }
+
+/* 掷骰时的大卡：盖在页面中间，数字滚动、结果和条在停下来以后才亮 */
+.lt-dice-ov { position: fixed; inset: 0; z-index: 3000; display: grid; place-items: center; padding: 16px; background: rgba(6, 7, 9, .55); backdrop-filter: blur(2px); animation: lt-ov-in 160ms ease both; }
+.lt-dice-ov.out { animation: lt-ov-out 220ms ease both; }
+.lt-dice-ov .lt-check { width: min(440px, 100%); max-width: none; margin: 0; padding: 16px 18px 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
+.lt-dice-ov .lt-ck-roll em { font-size: 44px; }
+.lt-dice-ov .lt-check.rolling:not(.done) { --ck: #5c626a; }
+.lt-dice-ov .lt-check.rolling:not(.done) :is(.lt-ck-roll strong, .lt-ck-bar .mark) { opacity: 0; }
+.lt-dice-ov .lt-check.done .lt-ck-roll strong { animation: lt-ck-pop 260ms cubic-bezier(.2, .9, .3, 1.4) both; }
+.lt-dice-ov .lt-check::after { content: 'ctOS // PROBABILITY ENGINE'; position: absolute; right: 12px; top: -18px; color: #5c626a; font-size: 9px; letter-spacing: .2em; }
+@keyframes lt-ov-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lt-ov-out { to { opacity: 0; } }
+@keyframes lt-ck-pop { from { opacity: 0; transform: scale(1.4); } to { opacity: 1; transform: none; } }
+/* 裁判在看的时候，发送键旁边亮一行小字 */
+body.lt-judging #form_sheld::before { content: '裁判在看这一步要不要掷骰…'; position: absolute; left: 12px; top: -20px; color: #9097a0; font: 11px/1 'JetBrains Mono', monospace; letter-spacing: .06em; }
+#form_sheld { position: relative; }
+.lt-gap { margin-top: 8px; }
+.lt-ck-table { display: grid; gap: 6px; margin-top: 12px; padding: 10px 12px; border: 1px solid #262a2f; background: #0b0c0e; font-size: 12px; line-height: 1.6; }
+.lt-ck-table div { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; }
+.lt-ck-table b { color: #ebe8e2; font-weight: 500; }
+.lt-ck-table span { color: #9097a0; }
+@media (prefers-reduced-motion: reduce) { .lt-dice-ov, .lt-dice-ov.out, .lt-dice-ov .lt-check.done .lt-ck-roll strong { animation: none; } }
+@media (max-width: 640px) { .lt-ck-body { flex-direction: column; align-items: stretch; } .lt-ck-roll { justify-content: space-between; } }

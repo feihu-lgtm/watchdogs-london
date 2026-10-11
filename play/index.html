@@ -44,9 +44,28 @@
     <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-floppy-disk"></div></div>
     <div class="drawer-content">
       <h3>存档</h3>
-      <p class="lt-note">每一轮都会自动存进这台设备的浏览器。换设备时导出 .jsonl 带走，SillyTavern 的聊天记录也能导进来。</p>
+      <p class="lt-note">每一轮都会自动存进这台设备的浏览器，只要不清浏览器数据，下面这些存档一直都在。换设备或者怕丢，就导出带走：单局导出成 .jsonl，SillyTavern 也能读；「备份全部」把所有存档打成一个文件，换台电脑用「恢复备份」一次导回来。</p>
       <div class="lt-inline"><button type="button" class="menu_button" id="lt-new">新开一局</button><button type="button" class="menu_button" id="lt-export">导出当前</button><button type="button" class="menu_button" id="lt-import">导入 .jsonl</button><input type="file" id="lt-file" accept=".jsonl,.json" hidden></div>
+      <div class="lt-inline lt-gap"><button type="button" class="menu_button" id="lt-backup">备份全部</button><button type="button" class="menu_button" id="lt-restore">恢复备份</button><input type="file" id="lt-bfile" accept=".json" hidden></div>
       <div id="lt-list"></div>
+    </div>
+  </div>
+  <div class="drawer" id="lt-dice" style="--zh:'检定';--code:'DICE'">
+    <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-dice-d20"></div></div>
+    <div class="drawer-content">
+      <h3>跑团检定</h3>
+      <p class="lt-note">你每发一句，先让裁判看这一步要不要掷骰：撬锁、潜入、搏斗、说服、让天问入侵这类成败难料的事才掷，闲聊、走路、亲热不掷。要掷就从道尔顿的技能或天问的技能线里挑一项，按熟练程度和难度算成功率，浏览器掷一个 d100，结果附在你这句话后面交给写作模型，正文照结果写。</p>
+      <label class="checkbox_label"><input type="checkbox" id="lt-ck-on"><span>开启跑团检定</span></label>
+      <label class="checkbox_label"><input type="checkbox" id="lt-ck-anim"><span>掷骰动画（关掉只在你的发言下面留一张检定卡）</span></label>
+      <label class="checkbox_label"><input type="checkbox" id="lt-ck-reroll"><span>重新生成时重掷（默认沿用同一个结果，免得刷骰）</span></label>
+      <label class="lt-row"><span>裁判模型</span><input id="lt-ck-model" class="text_pole" list="lt-models" placeholder="空着就用上面那个模型" autocomplete="off"></label>
+      <p class="lt-note">裁判每轮只多一次很短的请求。想省钱省时间可以填一个便宜的小模型，同一个接口里的就行。</p>
+      <div class="lt-ck-table">
+        <div><b>道尔顿</b><span>生疏 20 · 熟练 45 · 精通 65 · 顶尖 80 · 母语 90</span></div>
+        <div><b>天问</b><span>未解锁 做不到 · 一级 50 · 二级 70 · 三级 85</span></div>
+        <div><b>难度</b><span>简单 +20 · 普通 ±0 · 困难 −20 · 极难 −40；伤势、工具这类情境再 ±20 以内</span></div>
+        <div><b>结果</b><span>掷出 ≤ 成功率的五分之一 大成功 · ≤ 成功率 成功 · 超出 10 以内 代价成功 · 再高 失败 · 96 以上 大失败</span></div>
+      </div>
     </div>
   </div>
   <div class="drawer" id="extensions-settings-button">
