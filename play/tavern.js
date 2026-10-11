@@ -26,8 +26,10 @@ async function loadData() {
         }
     }
 }
-const [card, preset] = await loadData();
-const game = createGame({ card, preset });
+const [card, breakfast] = await loadData();
+// 预设可以换（内置英式早餐、小猫之神 4.0，或者自己导入的），换了就重建一次拼提示词的引擎
+let preset = breakfast;
+let game = createGame({ card, preset });
 
 /* ------------------------------------------------------------
    设置：API、名字、阅读器自己的设置，全部存在 localStorage
@@ -56,14 +58,18 @@ const apiReady = () => !!(settings.api.url && settings.api.model);
    存档：IndexedDB，一局一条
    ------------------------------------------------------------ */
 const db = await new Promise((ok, fail) => {
-    const req = indexedDB.open('watchdogs-london', 1);
-    req.onupgradeneeded = () => req.result.createObjectStore('saves', { keyPath: 'id' });
+    const req = indexedDB.open('watchdogs-london', 2);
+    req.onupgradeneeded = () => {
+        const names = req.result.objectStoreNames;
+        if (!names.contains('saves')) req.result.createObjectStore('saves', { keyPath: 'id' });
+        if (!names.contains('presets')) req.result.createObjectStore('presets', { keyPath: 'name' });
+    };
     req.onsuccess = () => ok(req.result);
     req.onerror = () => fail(req.error);
 });
-const tx = (mode, fn) => new Promise((ok, fail) => {
-    const t = db.transaction('saves', mode);
-    const r = fn(t.objectStore('saves'));
+const tx = (mode, fn, store = 'saves') => new Promise((ok, fail) => {
+    const t = db.transaction(store, mode);
+    const r = fn(t.objectStore(store));
     t.oncomplete = () => ok(r?.result);
     t.onerror = () => fail(t.error);
 });
@@ -141,7 +147,7 @@ const context = {
     saveSettingsDebounced: saveSettings,
     eventSource, eventTypes, event_types: eventTypes,
     get streamingProcessor() { return state.stream; },
-    chatCompletionSettings: preset,
+    get chatCompletionSettings() { return preset; },
     mainApi: 'openai',
     getChatCompletionModel: () => settings.api.model,
     ChatCompletionService: {
@@ -631,8 +637,11 @@ $('#sheld').addEventListener('pointerdown', () => {
 /* API 面板 */
 const api = settings.api;
 const fields = { url: $('#lt-url'), key: $('#lt-key'), model: $('#lt-model'), ctx: $('#lt-ctx'), max: $('#lt-max') };
-fields.ctx.placeholder = `跟预设走（${preset.openai_max_context}）`;
-fields.max.placeholder = `跟预设走（${game.sampling().max_tokens ?? preset.openai_max_tokens}）`;
+function presetPlaceholders() {
+    fields.ctx.placeholder = `跟预设走（${preset.openai_max_context}）`;
+    fields.max.placeholder = `跟预设走（${game.sampling().max_tokens ?? preset.openai_max_tokens}）`;
+}
+presetPlaceholders();
 for (const [k, el] of Object.entries(fields)) {
     el.value = api[k] ?? '';
     el.addEventListener('input', () => { api[k] = el.value; saveSettings(); });
@@ -791,7 +800,11 @@ function download(text, name, type) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type }));
     a.download = name.replace(/[\\/:*?"<>|]/g, '_');
+    // 挂到页面上再点：有的浏览器对没挂上的链接不认 download 文件名
+    a.hidden = true;
+    document.body.append(a);
     a.click();
+    a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 const stamp = () => new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
@@ -994,6 +1007,135 @@ $('#lt-ds-panel').addEventListener('input', (e) => {
     saveSettings();
 });
 for (const ev of [eventTypes.MESSAGE_SWIPED, eventTypes.MESSAGE_DELETED, eventTypes.MESSAGE_EDITED]) eventSource.on(ev, () => refreshDs(false));
+
+/* ------------------------------------------------------------
+   预设：内置英式早餐和小猫之神 4.0，可以导入 SillyTavern 导出的预设、导出当前的，逐条开关提示词
+   开关改动按预设分别记在设置里，不改原文件；导出时把开关写进去，SillyTavern 导回去就是同一套
+   ------------------------------------------------------------ */
+const BUILTIN = {
+    breakfast: { name: '英式早餐（本卡专属）', load: async () => breakfast },
+    cat4: { name: '小猫之神 4.0（底稿）', load: async () => (await fetch('../下载/' + encodeURIComponent('【小猫之神】4.0.json'))).json() },
+};
+settings.preset = { id: 'breakfast', toggles: {}, ...settings.preset };
+const listPresets = () => tx('readonly', (s) => s.getAll(), 'presets');
+const getPreset = (name) => tx('readonly', (s) => s.get(name), 'presets');
+const putPreset = (rec) => tx('readwrite', (s) => s.put(rec), 'presets');
+const delPreset = (name) => tx('readwrite', (s) => s.delete(name), 'presets');
+const orderOf = (p) => (p.prompt_order?.find((o) => String(o.character_id) === '100001') ?? p.prompt_order?.find((o) => String(o.character_id) === '100000'))?.order ?? [];
+function withToggles(p, id) {
+    const t = settings.preset.toggles[id];
+    if (!t || !Object.keys(t).length) return p;
+    const out = structuredClone(p);
+    for (const o of out.prompt_order ?? []) for (const e of o.order ?? []) if (e.identifier in t) e.enabled = t[e.identifier];
+    return out;
+}
+let presetRaw = breakfast;
+async function usePreset(id, { quiet = false } = {}) {
+    let raw;
+    try {
+        raw = BUILTIN[id] ? await BUILTIN[id].load() : (await getPreset(id.slice(7)))?.data;
+        if (!raw?.prompts) throw new Error('预设里没有提示词');
+    } catch (e) {
+        if (!quiet) toast('error', '预设没加载出来：' + e.message);
+        if (id === 'breakfast') return;
+        return usePreset('breakfast', { quiet: true });
+    }
+    presetRaw = raw;
+    settings.preset.id = id;
+    saveSettings();
+    preset = withToggles(raw, id);
+    game = createGame({ card, preset });
+    presetPlaceholders();
+    drawPresets();
+    if (!quiet) toast('success', '换成了预设「' + presetName(id) + '」');
+}
+const presetName = (id) => BUILTIN[id]?.name ?? id.slice(7);
+async function drawPresets() {
+    const sel = $('#lt-preset');
+    if (!sel) return;
+    const custom = (await listPresets()).sort((a, b) => a.name.localeCompare(b.name));
+    sel.innerHTML = Object.entries(BUILTIN).map(([k, v]) => `<option value="${k}">${esc(v.name)}</option>`).join('')
+        + (custom.length ? `<optgroup label="导入的">${custom.map((c) => `<option value="custom:${esc(c.name)}">${esc(c.name)}</option>`).join('')}</optgroup>` : '');
+    sel.value = settings.preset.id;
+    $('#lt-preset-del').disabled = !settings.preset.id.startsWith('custom:');
+    const id = settings.preset.id;
+    const t = settings.preset.toggles[id] ?? {};
+    const byId = new Map((presetRaw.prompts ?? []).map((x) => [x.identifier, x]));
+    const order = orderOf(presetRaw);
+    $('#lt-preset-n').textContent = `${order.filter((e) => (e.identifier in t ? t[e.identifier] : e.enabled)).length} / ${order.length} 条开着${Object.keys(t).length ? ' · 改过开关' : ''}`;
+    $('#lt-preset-list').innerHTML = order.map((e) => {
+        const pr = byId.get(e.identifier);
+        const on = e.identifier in t ? t[e.identifier] : e.enabled;
+        const name = pr?.name || e.identifier;
+        const marker = pr?.marker || !pr?.content;
+        return `<label class="lt-pp${on ? ' on' : ''}${e.identifier in t ? ' changed' : ''}"><input type="checkbox" data-pp="${esc(e.identifier)}"${on ? ' checked' : ''}><span>${esc(name)}</span><small>${marker ? '占位' : esc(pr?.role || 'system')}</small></label>`;
+    }).join('');
+}
+function presetFile(p) {
+    return JSON.stringify(p, null, 4);
+}
+(function ensurePresetDom() {
+    if ($('#lt-presets')) return;
+    const html = `<div class="drawer" id="lt-presets" style="--zh:'预设';--code:'PRESET'"><div class="drawer-toggle"><div class="drawer-icon fa-solid fa-sliders"></div></div><div class="drawer-content">
+<h3>预设</h3>
+<p class="lt-note">内置两份：本卡专属的「英式早餐」和它的底稿「小猫之神 4.0」。也可以导入 SillyTavern 导出的预设 .json。下面逐条开关提示词，改动只记在这台设备上，不动原文件；「导出当前」会把开关写进去，导回 SillyTavern 也是同一套。</p>
+<div class="lt-row"><span>当前预设</span><select id="lt-preset" class="text_pole"></select></div>
+<div class="lt-inline"><button type="button" class="menu_button" id="lt-preset-import">导入预设</button><button type="button" class="menu_button" id="lt-preset-export">导出当前</button><button type="button" class="menu_button" id="lt-preset-reset">恢复默认开关</button><button type="button" class="menu_button" id="lt-preset-del">删除</button><input type="file" id="lt-preset-file" accept=".json" hidden></div>
+<p class="lt-note lt-gap" id="lt-preset-n"></p>
+<p class="lt-note">标着「不要关」「别关」「勿删」的是骨架，关了会坏。文风、尺度这类「三选一」「二选一」的，同组只开一个。</p>
+<div id="lt-preset-list" class="lt-pp-list"></div>
+</div></div>`;
+    const anchor = $('#lt-dice');
+    if (anchor) anchor.insertAdjacentHTML('afterend', html); else $('#top-settings-holder').insertAdjacentHTML('beforeend', html);
+})();
+$('#lt-preset').addEventListener('change', (e) => usePreset(e.target.value));
+$('#lt-preset-list').addEventListener('change', (e) => {
+    const k = e.target.dataset.pp;
+    if (!k) return;
+    const id = settings.preset.id;
+    const t = settings.preset.toggles[id] ??= {};
+    const orig = orderOf(presetRaw).find((x) => x.identifier === k)?.enabled;
+    if (e.target.checked === orig) delete t[k]; else t[k] = e.target.checked;
+    saveSettings();
+    preset = withToggles(presetRaw, id);
+    game = createGame({ card, preset });
+    drawPresets();
+});
+$('#lt-preset-reset').addEventListener('click', () => {
+    const id = settings.preset.id;
+    if (!settings.preset.toggles[id] || !confirm('把这份预设的开关恢复成原样？')) return;
+    delete settings.preset.toggles[id];
+    saveSettings();
+    usePreset(id, { quiet: true });
+});
+$('#lt-preset-export').addEventListener('click', () => {
+    const id = settings.preset.id;
+    download(presetFile(preset), `${presetName(id).replace(/（.*?）/g, '')}${settings.preset.toggles[id] ? '（改过开关）' : ''} - ${stamp()}.json`, 'application/json');
+});
+$('#lt-preset-import').addEventListener('click', () => $('#lt-preset-file').click());
+$('#lt-preset-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+        const data = JSON.parse(await file.text());
+        if (!Array.isArray(data?.prompts) || !Array.isArray(data?.prompt_order)) throw new Error('这不像 SillyTavern 的对话补全预设（没有 prompts 和 prompt_order）');
+        const base = file.name.replace(/\.json$/i, '').trim() || '导入的预设';
+        const name = prompt('给这份预设起个名字，同名会覆盖：', base)?.trim();
+        if (!name) return;
+        await putPreset({ name, data, at: Date.now() });
+        delete settings.preset.toggles['custom:' + name];
+        await usePreset('custom:' + name);
+    } catch (err) { toast('error', '导入失败：' + err.message); }
+});
+$('#lt-preset-del').addEventListener('click', async () => {
+    const id = settings.preset.id;
+    if (!id.startsWith('custom:') || !confirm(`删掉导入的预设「${id.slice(7)}」？`)) return;
+    await delPreset(id.slice(7));
+    delete settings.preset.toggles[id];
+    await usePreset('breakfast');
+});
+await usePreset(settings.preset.id, { quiet: true });
 
 /* ------------------------------------------------------------
    开局与读档

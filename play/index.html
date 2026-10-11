@@ -6,7 +6,7 @@
 <title>看门狗：伦敦 · 轻量酒馆</title>
 <meta name="description" content="《看门狗：伦敦》角色卡的网页版：填上自己的 API 就能在浏览器里玩，存档留在本机。">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
-<link rel="stylesheet" href="tavern.css?v=20261011b">
+<link rel="stylesheet" href="tavern.css?v=20261011c">
 </head>
 <body class="ctos">
 <div id="top-settings-holder">
@@ -43,7 +43,7 @@
       <div class="lt-inline"><button type="button" class="menu_button" id="lt-test">测试连接</button><span id="lt-status" class="lt-note"></span></div>
       <hr>
       <label class="lt-row"><span>你的名字</span><input id="lt-user" class="text_pole" placeholder="道尔顿"></label>
-      <p class="lt-note">预设「英式早餐」、角色卡和内嵌世界书都已经装好，不用另外导入。</p>
+      <p class="lt-note">预设「英式早餐」、角色卡和内嵌世界书都已经装好，不用另外导入。想换预设、开关提示词，去左边「预设」。</p>
     </div>
   </div>
   <div class="drawer" id="lt-saves" style="--zh:'存档';--code:'SAVE'">
@@ -72,6 +72,18 @@
         <div><b>难度</b><span>简单 +20 · 普通 ±0 · 困难 −20 · 极难 −40；伤势、工具这类情境再 ±20 以内</span></div>
         <div><b>结果</b><span>掷出 ≤ 成功率的五分之一 大成功 · ≤ 成功率 成功 · 超出 10 以内 代价成功 · 再高 失败 · 96 以上 大失败</span></div>
       </div>
+    </div>
+  </div>
+  <div class="drawer" id="lt-presets" style="--zh:'预设';--code:'PRESET'">
+    <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-sliders"></div></div>
+    <div class="drawer-content">
+      <h3>预设</h3>
+      <p class="lt-note">内置两份：本卡专属的「英式早餐」和它的底稿「小猫之神 4.0」。也可以导入 SillyTavern 导出的预设 .json。下面逐条开关提示词，改动只记在这台设备上，不动原文件；「导出当前」会把开关写进去，导回 SillyTavern 也是同一套。</p>
+      <div class="lt-row"><span>当前预设</span><select id="lt-preset" class="text_pole"></select></div>
+      <div class="lt-inline"><button type="button" class="menu_button" id="lt-preset-import">导入预设</button><button type="button" class="menu_button" id="lt-preset-export">导出当前</button><button type="button" class="menu_button" id="lt-preset-reset">恢复默认开关</button><button type="button" class="menu_button" id="lt-preset-del">删除</button><input type="file" id="lt-preset-file" accept=".json" hidden></div>
+      <p class="lt-note lt-gap" id="lt-preset-n"></p>
+      <p class="lt-note">标着「不要关」「别关」「勿删」的是骨架，关了会坏。文风、尺度这类「三选一」「二选一」的，同组只开一个。</p>
+      <div id="lt-preset-list" class="lt-pp-list"></div>
     </div>
   </div>
   <div class="drawer" id="lt-dedsec" style="--zh:'DedSec';--code:'FANS'">
@@ -133,6 +145,6 @@
   </div>
 </div>
 <div id="toast-container"></div>
-<script type="module" src="tavern.js?v=20261011b"></script>
+<script type="module" src="tavern.js?v=20261011c"></script>
 </body>
 </html>

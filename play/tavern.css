@@ -265,3 +265,11 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @keyframes lt-badge-out { to { opacity: 0; transform: translate(-50%, 8px); } }
 @media (prefers-reduced-motion: reduce) { .lt-badge-toast, .lt-badge-toast.out, .lt-post.pending { animation: none; } }
 @media (max-width: 1000px) { #lt-fans-pop { top: 56px; } .lt-badge-toast { bottom: 96px; } }
+
+/* 预设：逐条开关 */
+.lt-pp-list { display: grid; gap: 3px; margin-top: 8px; }
+.lt-pp { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 8px; border: 1px solid #1f2328; background: #0b0c0e; cursor: pointer; font-size: 13px; color: #6c727a; }
+.lt-pp.on { color: #dcd8d0; border-color: #2c3138; }
+.lt-pp.changed { border-left: 3px solid #ff4d2e; }
+.lt-pp span { overflow-wrap: anywhere; }
+.lt-pp small { color: #5c626a; font: 10.5px/1 'JetBrains Mono', monospace; letter-spacing: .06em; }
