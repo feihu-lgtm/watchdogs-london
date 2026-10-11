@@ -23,7 +23,7 @@ data/default-user/characters/看门狗：伦敦/
 
 不放立绘包也能游玩，页面会自动从 CDN 获取立绘。
 
-预设除专为本卡调优的「英式早餐」外，亦提供底稿「【小猫之神】4.0」（已剥离 CutieFont 与粉色主题 CSS 的素版）。资源可在 [GitHub Releases (v1.0)](https://github.com/feihu-lgtm/watchdogs-london/releases/tag/v1.0) 或发布页下载。
+预设除专为本卡调优的「英式早餐」外，亦提供底稿「【小猫之神】4.0」（完整保留 64 条原版提示词，仅剥离外部 Catbox 字体与粉色主题 CSS，折叠栏原生纯净渲染）。资源可在 [GitHub Releases (v1.0)](https://github.com/feihu-lgtm/watchdogs-london/releases/tag/v1.0) 或发布页下载。
 
 ## 授权与致谢
 
