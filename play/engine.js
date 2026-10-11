@@ -316,9 +316,12 @@ export function createGame({ card, preset }) {
         return result;
     }
 
+    // 开场白和备选开场白排成第一条消息的几版，左右翻着挑；每一版自带的 JSONPatch 套在初始变量上，就是那一版开局的状态
     function firstMessage() {
-        const mes = String(card.first_mes || '');
-        return { name: card.name, is_user: false, mes, swipes: [mes], swipe_id: 0, variables: [{ stat_data: clone(card.init_stat) }] };
+        const swipes = [card.first_mes, ...(card.alternate_greetings || [])].map(text => String(text || '')).filter(Boolean);
+        if (!swipes.length) swipes.push('');
+        const variables = swipes.map(text => ({ stat_data: applyVariableUpdate(card.init_stat, text) }));
+        return { name: card.name, is_user: false, mes: swipes[0], swipes, swipe_id: 0, variables };
     }
 
     function buildMessages(chat, { userName = '道尔顿', charName = card.name, countTokens = defaultCountTokens, maxContext } = {}) {
