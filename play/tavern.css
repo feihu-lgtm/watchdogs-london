@@ -144,3 +144,16 @@ body.lt-judging #form_sheld::before { content: '裁判在看这一步要不要�
 @media (max-width: 640px) { .lt-ck-body { flex-direction: column; align-items: stretch; } .lt-ck-roll { justify-content: space-between; } }
 .lt-prof-io { margin: -2px 0 4px 94px; }
 @media (max-width: 640px) { .lt-prof-io { margin-left: 0; } }
+
+/* 原声伴读 */
+.lt-ost-player { margin-top: 10px; padding: 12px; background: #0b0c0e; border: 1px solid #262a2f; }
+.lt-audio-vol { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #9097a0; margin-left: auto; }
+.lt-audio-vol input { width: 80px; }
+.lt-ost-list { display: grid; gap: 8px; margin-top: 10px; }
+.lt-ost-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid #262a2f; background: #0b0c0e; font-size: 13px; }
+.lt-ost-tag { padding: 1px 6px; font-size: 10px; font-weight: 700; letter-spacing: .08em; background: #1c2026; color: #ff4d2e; border: 1px solid #383d44; }
+.lt-ost-info { overflow: hidden; }
+.lt-ost-info b { display: block; color: #ebe8e2; font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.lt-ost-info small { color: #5c626a; font-size: 11px; }
+.lt-ost-link { color: #9097a0; text-decoration: none; font-size: 12px; padding: 4px 8px; border: 1px solid #262a2f; }
+.lt-ost-link:hover { color: #ebe8e2; border-color: #ff4d2e; }

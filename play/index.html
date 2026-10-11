@@ -73,6 +73,26 @@
       </div>
     </div>
   </div>
+  <div class="drawer" id="lt-ost" style="--zh:'原声';--code:'OST';order:6">
+    <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-music"></div></div>
+    <div class="drawer-content">
+      <h3>伦敦暗流 · 伴读原声</h3>
+      <p class="lt-note">精选十四首冷战谍战、伦敦阴雨与网安算力原声。支持输入任意音频直链在酒馆后台循环播放；点击曲目可直接在网易云收听完整高音质母带。</p>
+      <div class="lt-ost-player">
+        <audio id="lt-audio" loop></audio>
+        <div class="lt-row"><span>音频直链</span><input id="lt-audio-url" class="text_pole" type="url" placeholder="贴入音频直链 (MP3/M4A/AAC)..." autocomplete="off"></div>
+        <div class="lt-inline">
+          <button type="button" class="menu_button" id="lt-audio-play">播放</button>
+          <button type="button" class="menu_button" id="lt-audio-stop">停止</button>
+          <label class="lt-audio-vol">音量 <input type="range" id="lt-audio-vol" min="0" max="1" step="0.05" value="0.5"></label>
+        </div>
+        <div id="lt-audio-status" class="lt-note lt-gap">当前未播放直链</div>
+      </div>
+      <hr>
+      <h4>推荐曲目清单 (网易云音乐)</h4>
+      <div id="lt-ost-list" class="lt-ost-list"></div>
+    </div>
+  </div>
   <div class="drawer" id="extensions-settings-button">
     <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-cubes"></div></div>
     <div class="drawer-content">

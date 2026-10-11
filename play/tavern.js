@@ -834,4 +834,89 @@ frame.title = 'ctOS 阅读器';
 frame.srcdoc = `<!doctype html><meta charset="utf-8"><script>window.SillyTavern = parent.SillyTavern;<\/script><script type="module" src="${new URL('data/reader.js', location.href).href}"><\/script>`;
 document.body.append(frame);
 
+/* ------------------------------------------------------------
+   伦敦暗流 · 伴读原声
+   ------------------------------------------------------------ */
+const OST_TRACKS = [
+    { tag: '机房算力', title: 'The Entity', artist: 'Lorne Balfe', ost: '《碟中谍7：致命清算》', id: '2059054982' },
+    { tag: '静默潜入', title: 'The Heist', artist: 'Danny Elfman', ost: '《碟中谍1》', id: '473187110' },
+    { tag: '街头追逐', title: 'Stairs and Rooftops', artist: 'Lorne Balfe', ost: '《碟中谍6：全面瓦解》', id: '1294165108' },
+    { tag: '西敏雾夜', title: 'A Foggy Night in London', artist: 'Joe Kraemer', ost: '《碟中谍5：神秘国度》', id: '33728269' },
+    { tag: '抵抗之声', title: 'Welcome to the Resistance', artist: 'Stephen Barton', ost: '《看门狗：军团》', id: '1803518592' },
+    { tag: '南伦敦碎拍', title: 'Archangel', artist: 'Burial', ost: '《Untrue》', id: '16640371' },
+    { tag: '冷战特工', title: 'Tinker Tailor Soldier Spy', artist: 'Alberto Iglesias', ost: '《锅匠，裁缝，士兵，间谍》', id: '990303' },
+    { tag: '心跳监视', title: 'Bullets', artist: 'Archive', ost: '《Controlling Crowds》', id: '3884715' },
+    { tag: '重装尾随', title: 'Angel', artist: 'Massive Attack', ost: '《Mezzanine》', id: '21252137' },
+    { tag: '神经脉冲', title: 'Open Eye Signal', artist: 'Jon Hopkins', ost: '《Immunity》', id: '26321472' },
+    { tag: '残破哀歌', title: 'Acid Rain', artist: 'Lorn', ost: '《The Maze To Nowhere》', id: '1497854235' },
+    { tag: '泰晤士晨雾', title: 'November', artist: 'Max Richter', ost: '《Memoryhouse》', id: '16964075' },
+    { tag: '屏幕冷光', title: 'Hand Covers Bruise', artist: 'Trent Reznor / Atticus Ross', ost: '《社交网络》', id: '1061850' },
+    { tag: '白厅突围', title: 'Burn My Shadow', artist: 'UNKLE', ost: '《War Stories》', id: '21986980' },
+];
+
+function initOst() {
+    const listEl = $('#lt-ost-list');
+    if (!listEl) return;
+    listEl.innerHTML = OST_TRACKS.map((t) => `
+<div class="lt-ost-item">
+  <span class="lt-ost-tag">${esc(t.tag)}</span>
+  <div class="lt-ost-info">
+    <b>${esc(t.title)}</b>
+    <small>${esc(t.artist)} · ${esc(t.ost)}</small>
+  </div>
+  <a href="https://music.163.com/#/song?id=${esc(t.id)}" target="_blank" rel="noopener noreferrer" class="lt-ost-link">网易云 ↗</a>
+</div>`).join('');
+
+    const audio = $('#lt-audio');
+    const urlInput = $('#lt-audio-url');
+    const playBtn = $('#lt-audio-play');
+    const stopBtn = $('#lt-audio-stop');
+    const volInput = $('#lt-audio-vol');
+    const statusEl = $('#lt-audio-status');
+
+    settings.ost ??= { url: '', volume: 0.5 };
+    urlInput.value = settings.ost.url || '';
+    volInput.value = settings.ost.volume ?? 0.5;
+    audio.volume = Number(volInput.value);
+
+    urlInput.addEventListener('input', () => {
+        settings.ost.url = urlInput.value.trim();
+        saveSettings();
+    });
+    volInput.addEventListener('input', () => {
+        audio.volume = Number(volInput.value);
+        settings.ost.volume = audio.volume;
+        saveSettings();
+    });
+    playBtn.addEventListener('click', async () => {
+        const u = urlInput.value.trim();
+        if (!u) { toast('warning', '请先贴入一个可播放的音频直链 URL'); return; }
+        if (audio.src !== u) audio.src = u;
+        if (audio.paused) {
+            try {
+                await audio.play();
+                statusEl.textContent = '正在循环播放中…';
+                statusEl.className = 'lt-note lt-gap lt-ok';
+                playBtn.textContent = '暂停';
+            } catch (e) {
+                statusEl.textContent = '播放失败：' + e.message;
+                statusEl.className = 'lt-note lt-gap lt-bad';
+            }
+        } else {
+            audio.pause();
+            statusEl.textContent = '已暂停';
+            statusEl.className = 'lt-note lt-gap';
+            playBtn.textContent = '播放';
+        }
+    });
+    stopBtn.addEventListener('click', () => {
+        audio.pause();
+        audio.currentTime = 0;
+        statusEl.textContent = '已停止';
+        statusEl.className = 'lt-note lt-gap';
+        playBtn.textContent = '播放';
+    });
+}
+initOst();
+
 if (!apiReady()) openDrawer('lt-api');
