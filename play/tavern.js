@@ -4,6 +4,8 @@
 // 跟它在酒馆助手里的处境一模一样。提示词由 engine.js 按预设「英式早餐」和卡内世界书拼，变量按 MVU 的规矩更新。
 import { createGame } from './engine.js';
 import * as dice from './dice.js';
+import * as dedsec from './dedsec.js';
+import { createAmbience } from './ambience.js';
 
 const $ = (s, root = document) => root.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -38,6 +40,8 @@ const settings = (() => {
     s.ext ??= {};
     // 跑团检定：on 总开关，anim 掷骰动画，model 裁判用的模型（空着就用上面那个），reroll 重新生成时重掷
     s.check = { on: true, anim: true, model: '', reroll: false, ...s.check };
+    // DalPost：auto 每轮自动发，author 谁来发，rating 尺度，style 文风要求，model 发帖用的模型
+    s.post = { auto: false, author: '天问', rating: '正经', style: '', model: '', ...s.post };
     return s;
 })();
 let settingsTimer = 0;
@@ -183,10 +187,11 @@ function mesEl(msg, id) {
     <div class="mes_buttons">
       <div class="mes_button fa-solid fa-copy" data-act="copy" title="复制"></div>
       <div class="mes_button fa-solid fa-pencil" data-act="edit" title="编辑"></div>
+      ${id > 0 && !msg.is_user ? '<div class="mes_button fa-solid fa-hashtag" data-act="post" title="把这一轮发成一条 DalPost"></div>' : ''}
       ${id > 0 ? '<div class="mes_button fa-solid fa-trash-can" data-act="delete" title="删除这一条"></div>' : ''}
     </div>
   </div>
-  <div class="mes_text">${textHtml(msg.mes)}</div>${msg.is_user && msg.extra?.check?.result && settings.check.on ? dice.cardHtml(msg.extra.check) : ''}
+  <div class="mes_text">${textHtml(msg.mes)}</div>${msg.is_user && msg.extra?.check?.result && settings.check.on ? dice.cardHtml(msg.extra.check) : ''}${postOf(msg) ? dedsec.postHtml(postOf(msg), { mid: id, head: postOf(msg).head }) : ''}
 </div>
 <div class="swipeRightBlock"><div class="swipe_right fa-solid fa-chevron-right" title="下一版 / 重新生成"></div><div class="swipes-counter"></div></div>`;
     return el;
@@ -211,6 +216,7 @@ function refreshMes(id) {
     if (!el) return;
     const text = el.querySelector('.mes_text');
     if (!text.querySelector('.edit_textarea')) text.innerHTML = textHtml(state.chat[id].mes);
+    drawPost(id);
     markLast();
 }
 
@@ -346,7 +352,7 @@ async function runCheck(uid, signal) {
     }
     const c = dice.resolve(verdict, skills);
     u.extra = { ...u.extra, check: c ?? { none: true, t: Date.now() } };
-    if (c) { drawCheck(uid); if (settings.check.anim) await rollShow(c); }
+    if (c) { drawCheck(uid); if (settings.check.anim) await rollShow(c); refreshDs(true); }
 }
 // 写作模型看到的聊天：玩家那句话后面附上检定结果；页面上显示的原文不动
 function withChecks(chat) {
@@ -476,7 +482,9 @@ async function generate(kind = 'normal') {
     eventSource.emit(eventTypes.MESSAGE_RECEIVED, id, kind === 'swipe' ? 'swipe' : 'normal');
     eventSource.emit(eventTypes.CHARACTER_MESSAGE_RENDERED, id, kind === 'swipe' ? 'swipe' : 'normal');
     eventSource.emit(ctrl.signal.aborted ? eventTypes.GENERATION_STOPPED : eventTypes.GENERATION_ENDED, id);
+    refreshDs(true);
     saveNow();
+    if (settings.post.auto && !failed && !ctrl.signal.aborted && msg.mes.trim()) makePost(id);
 }
 
 function send() {
@@ -552,6 +560,8 @@ chatEl.addEventListener('click', async (e) => {
         eventSource.emit(eventTypes.MESSAGE_EDITED, id);
         eventSource.emit(eventTypes.MESSAGE_UPDATED, id);
         saveNow();
+    } else if (act === 'post') {
+        makePost(id);
     } else if (act === 'delete') {
         if (state.busy || !confirm('删掉这一条？')) return;
         state.chat.splice(id, 1);
@@ -588,6 +598,7 @@ function openDrawer(id) {
         d.querySelector('.drawer-content')?.classList.toggle('openDrawer', d.id === id);
     }
     if (id === 'lt-saves') drawSaves();
+    if (id === 'lt-dedsec') drawDs();
 }
 document.querySelector('#top-settings-holder').addEventListener('click', (e) => {
     const toggle = e.target.closest('.drawer-toggle');
@@ -818,6 +829,142 @@ $('#lt-file').addEventListener('change', async (e) => {
 });
 
 /* ------------------------------------------------------------
+   DedSec：粉丝、成就、手气和 DalPost（算法和版面在 dedsec.js）
+   ------------------------------------------------------------ */
+const postOf = (msg) => (msg && !msg.is_user ? msg.posts?.[msg.swipe_id ?? 0] : null);
+function drawPost(id) {
+    const el = chatEl.querySelector(`.mes[mesid="${id}"] .mes_block`);
+    if (!el) return;
+    const p = postOf(state.chat[id]);
+    const old = el.querySelector('.lt-post:not(.pending)');
+    if (old?.dataset.t === String(p?.t ?? '')) return;
+    old?.remove();
+    if (p) {
+        el.insertAdjacentHTML('beforeend', dedsec.postHtml(p, { mid: id, head: p.head }));
+        el.lastElementChild.dataset.t = String(p.t);
+    }
+}
+// 这一轮的页眉：这条回复里最后一个，没有就往前找
+function headAt(id) {
+    for (let i = id; i >= 0; i--) {
+        const m = state.chat[i];
+        if (m.is_user) continue;
+        const hs = [...String(m.mes || '').matchAll(/^\s*@\s*(.+)$/gm)];
+        if (hs.length) return hs.pop()[1].trim();
+    }
+    return '';
+}
+const posting = new Set();
+async function makePost(id) {
+    const msg = state.chat[id];
+    if (!msg || msg.is_user || posting.has(msg)) return;
+    if (!apiReady()) { openDrawer('lt-api'); toast('warning', '先在“API 连接”里填好接口'); return; }
+    const sid = msg.swipe_id ?? 0;
+    const cfg = settings.post;
+    const text = (msg.mes || '').replace(/<(think|thinking|UpdateVariable)[\s\S]*?<\/\1>/gi, '').replace(/<[^>]+>/g, '').replace(/^\s*[&].*$/gm, '').trim().slice(-3000);
+    const uc = state.chat[id - 1]?.is_user ? state.chat[id - 1].extra?.check : null;
+    const check = uc?.result ? uc : null;
+    const head = headAt(id);
+    const fans = dedsec.tally(state.chat).total;
+    posting.add(msg);
+    const block = chatEl.querySelector(`.mes[mesid="${id}"] .mes_block`);
+    block?.insertAdjacentHTML('beforeend', '<div class="lt-post pending">DalPost · 正在发帖…</div>');
+    try {
+        const out = await complete(dedsec.postPrompt({ text, head, check, fans: fans.toLocaleString('en-US'), author: cfg.author, style: cfg.style.trim(), rating: cfg.rating }), {
+            stream: false, max_tokens: 1500, model: cfg.model || settings.check.model || undefined, override: { temperature: 0.95 },
+        });
+        const parsed = dedsec.parsePost(out.content || out.reasoning);
+        if (!parsed) throw new Error('模型没按格式回帖子');
+        // 这期间这条回复被删了或者翻到了别的版本，就不往上贴
+        if (state.chat[id] !== msg || (msg.swipe_id ?? 0) !== sid) return;
+        const bonus = check?.result === '大成功' || check?.result === '大失败' ? 1.6 : 1;
+        msg.posts ??= [];
+        msg.posts[sid] = { ...dedsec.engage(parsed, fans, bonus), author: cfg.author, rating: cfg.rating, head, t: Date.now() };
+        drawPost(id);
+        refreshDs(true);
+        saveSoon();
+    } catch (e) {
+        toast('error', 'DalPost 没发出去：' + e.message);
+    } finally {
+        posting.delete(msg);
+        block?.querySelector('.lt-post.pending')?.remove();
+    }
+}
+chatEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.lt-post [data-post]');
+    if (!b) return;
+    const id = Number(b.closest('.mes')?.getAttribute('mesid'));
+    const msg = state.chat[id];
+    if (!msg) return;
+    if (b.dataset.post === 'redo') makePost(id);
+    if (b.dataset.post === 'del' && confirm('删掉这条帖子？涨的粉丝也会退回去。')) {
+        delete msg.posts[msg.swipe_id ?? 0];
+        drawPost(id);
+        refreshDs(false);
+        saveSoon();
+    }
+});
+
+// 涨粉和成就：announce 为真时弹出来（刚写完一轮、刚掷完骰、刚发完帖），否则只悄悄记下
+let ds = { total: 0, got: new Map(), gains: [], checks: [], posts: [] };
+let dsTab = 'fans';
+function refreshDs(announce) {
+    ds = dedsec.tally(state.chat);
+    const mem = state.meta.dedsec ??= { seen: [], last: 0 };
+    const fresh = [...ds.got.keys()].filter((k) => !mem.seen.includes(k));
+    if (announce) {
+        if (ds.total > mem.last) fansPop(ds.total, ds.total - mem.last);
+        fresh.forEach((k, i) => setTimeout(() => badgeToast(dedsec.BADGES.find((b) => b.id === k)), 600 + i * 1400));
+    }
+    if (fresh.length || mem.last !== ds.total) {
+        mem.seen = [...new Set([...mem.seen, ...ds.got.keys()])];
+        mem.last = ds.total;
+        saveSoon();
+    }
+    if ($('#lt-dedsec .drawer-content').classList.contains('openDrawer')) drawDs();
+}
+function fansPop(total, gain) {
+    let el = $('#lt-fans-pop');
+    if (!el) { el = document.createElement('div'); el.id = 'lt-fans-pop'; document.body.append(el); }
+    el.innerHTML = `<span>♥</span><b>${total.toLocaleString('en-US')}</b><em>+${gain.toLocaleString('en-US')}</em>`;
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    clearTimeout(fansPop.t);
+    fansPop.t = setTimeout(() => el.classList.remove('on'), 3200);
+}
+function badgeToast(b) {
+    if (!b) return;
+    const el = document.createElement('div');
+    el.className = 'lt-badge-toast';
+    el.innerHTML = `<span>${b.icon}</span><div><small>成就解锁</small><b>${esc(b.name)}</b><em>${esc(b.desc)}</em></div>`;
+    document.body.append(el);
+    setTimeout(() => el.classList.add('out'), 3600);
+    setTimeout(() => el.remove(), 4000);
+}
+function drawDs() {
+    const box = $('#lt-ds-panel');
+    box.innerHTML = dedsec.panelHtml(ds, dsTab);
+    for (const el of box.querySelectorAll('[data-pc]')) {
+        const k = el.dataset.pc;
+        if (el.type === 'checkbox') el.checked = !!settings.post[k]; else el.value = settings.post[k] ?? '';
+    }
+}
+$('#lt-ds-panel').addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-ds-tab]')?.dataset.dsTab;
+    if (tab) { dsTab = tab; drawDs(); return; }
+    if (e.target.closest('[data-post="now"]')) {
+        const id = state.chat.findLastIndex((m) => !m.is_user);
+        if (id > 0) makePost(id); else toast('warning', '开场白不发帖，先玩一轮');
+    }
+});
+$('#lt-ds-panel').addEventListener('input', (e) => {
+    const k = e.target.dataset.pc;
+    if (!k) return;
+    settings.post[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    saveSettings();
+});
+for (const ev of [eventTypes.MESSAGE_SWIPED, eventTypes.MESSAGE_DELETED, eventTypes.MESSAGE_EDITED]) eventSource.on(ev, () => refreshDs(false));
+
+/* ------------------------------------------------------------
    开局与读档
    ------------------------------------------------------------ */
 async function openSave(rec) {
@@ -828,6 +975,7 @@ async function openSave(rec) {
     settings.current = rec.id;
     saveSettings();
     renderChat();
+    refreshDs(false);
     eventSource.emit(eventTypes.CHAT_CHANGED, state.id);
 }
 async function newGame() {
@@ -930,5 +1078,13 @@ function initOst() {
     });
 }
 initOst();
+
+/* 环境氛围：页眉的时间地点上色、雨丝、雨声和城市底噪 */
+const amb = createAmbience({ settings, save: saveSettings, mount: $('#lt-amb-ui') });
+for (const ev of [eventTypes.CHAT_CHANGED, eventTypes.MESSAGE_SWIPED, eventTypes.MESSAGE_RECEIVED, eventTypes.MESSAGE_EDITED, eventTypes.MESSAGE_DELETED]) {
+    eventSource.on(ev, () => amb.update(state.chat));
+}
+eventSource.on(eventTypes.STREAM_TOKEN_RECEIVED, () => amb.update(state.chat, { soon: true }));
+amb.update(state.chat);
 
 if (!apiReady()) openDrawer('lt-api');

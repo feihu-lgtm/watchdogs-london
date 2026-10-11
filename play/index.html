@@ -73,11 +73,18 @@
       </div>
     </div>
   </div>
+  <div class="drawer" id="lt-dedsec" style="--zh:'DedSec';--code:'FANS'">
+    <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-heart"></div></div>
+    <div class="drawer-content">
+      <h3>DedSec · 粉丝与 DalPost</h3>
+      <div id="lt-ds-panel"></div>
+    </div>
+  </div>
   <div class="drawer" id="lt-ost" style="--zh:'原声';--code:'OST';order:6">
     <div class="drawer-toggle"><div class="drawer-icon fa-solid fa-music"></div></div>
     <div class="drawer-content">
       <h3>伦敦暗流 · 伴读原声</h3>
-      <p class="lt-note">精选十四首冷战谍战、伦敦阴雨与网安算力原声。支持输入任意音频直链在酒馆后台循环播放；点击曲目可直接在网易云收听完整高音质母带。</p>
+      <p class="lt-note">精选十四首冷战谍战、伦敦阴雨与网安算力原声。支持输入任意音频直链在酒馆后台循环播放；点击曲目可直接在网易云收听完整高音质母带。下面还有环境氛围：画面上色、雨丝、雨声和城市底噪，可以和直链叠着放。</p>
       <div class="lt-ost-player">
         <audio id="lt-audio" loop></audio>
         <div class="lt-row"><span>音频直链</span><input id="lt-audio-url" class="text_pole" type="url" placeholder="贴入音频直链 (MP3/M4A/AAC)..." autocomplete="off"></div>
@@ -88,6 +95,8 @@
         </div>
         <div id="lt-audio-status" class="lt-note lt-gap">当前未播放直链</div>
       </div>
+      <hr>
+      <div id="lt-amb-ui"></div>
       <hr>
       <h4>推荐曲目清单 (网易云音乐)</h4>
       <div id="lt-ost-list" class="lt-ost-list"></div>
