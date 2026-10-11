@@ -1430,7 +1430,14 @@ function stripAux(raw) {
         .replace(new RegExp(`<(${AUX_TAGS})\\b[^>]*>[\\s\\S]*$`, 'i'), '');
 }
 
-function splitOutput(raw, live, expectGame = false, generated = false) {
+// 正文的样子：页眉、立绘标记、分页线、声部、“说话人：台词”。思考里很少会连着出现好几行这种东西
+const STORY_LINE = /^[\t ]*(?:@\s*\S|&\s*\S|-{3,}[\t ]*$|>\s*\*\*【|>\s*\*\*你\*\*|〔文本|[^\s：:<>]{1,16}[：:][\t ]*[“"「])/gm;
+function looksLikeStory(t) {
+    return (String(t || '').match(STORY_LINE) || []).length >= 3;
+}
+
+// native：接口把思考放在单独的 reasoning 字段里传回来了（Gemini、DeepSeek 这类），回复正文里本来就不会有思考
+function splitOutput(raw, live, expectGame = false, generated = false, native = false) {
     let story = raw, thinking = '', thinkingLive = false, closed = false, unclosed = false;
     const open = /<(think_yummy|meow|think|thinking)(?=[\s>])[^>]*>/i.exec(story);
     const close = /<\/(?:think_yummy|meow|think|thinking)\s*>/i.exec(story);
@@ -1452,11 +1459,11 @@ function splitOutput(raw, live, expectGame = false, generated = false) {
         const start = game.index + game[0].length;
         const end = /<\/game\s*>/i.exec(story.slice(start));
         story = story.slice(start, end ? start + end.index : undefined);
-    } else if (live && expectGame) {
+    } else if (live && expectGame && !native && !looksLikeStory(story)) {
         thinking ||= story;
         thinkingLive = true;
         story = '';
-    } else if (expectGame && generated && !closed) {
+    } else if (expectGame && generated && !closed && !native && !looksLikeStory(story)) {
         // 预设预填了思考的开始标签，回复里却既没有结束标签也没有正文标签：模型整段都没走出思考。
         thinking ||= story;
         story = '';
@@ -1467,8 +1474,9 @@ function splitOutput(raw, live, expectGame = false, generated = false) {
 
 function clean(raw) {
     return stripAux(raw)
-        .replace(/```[\s\S]*?```/g, '')
-        .replace(/```[\s\S]*$/, '')
+        // 模型有时把整段正文包进代码块：像正文的就拆掉围栏留下内容，别的代码块照旧不进小说
+        .replace(/```[^\n`]*\n?([\s\S]*?)```/g, (_, body) => (looksLikeStory(body) ? body : ''))
+        .replace(/```[^\n`]*\n?([\s\S]*)$/, (_, body) => (looksLikeStory(body) ? body : ''))
         .replace(/<[^>\n]+>/g, '')
         .replace(/<[^>\n]*$/, '');
 }
@@ -1989,7 +1997,7 @@ function buildReader(el, id, msg, live) {
         return r;
     }
     const before = inherited(ctx().chat, id);
-    const output = splitOutput(raw, live, expectsGame(), !!msg.extra?.api);
+    const output = splitOutput(raw, live, expectsGame(), !!msg.extra?.api, !!nativeThinking);
     let pages = r?._story === output.story && r._live === live ? r._pages : parse(output.story, before.place, before.cast, live);
     let no = 0;
     for (const p of pages) for (const b of p.blocks) if (b.t === 'doc') b.no = ++no;
