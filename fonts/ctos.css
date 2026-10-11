@@ -1,0 +1,131 @@
+/* ctOS 默认主题用的字体，从 fontsource 打包版取来，自己托管，不走 Google Fonts。
+   全部 SIL Open Font License 1.1，授权文本见同目录 OFL-*.txt。
+   正文的思源宋体（Noto Serif SC）太大，没放进来，仍从 Google Fonts 取，取不到就用系统宋体。 */
+/* barlow-condensed-latin-500-normal */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(./barlow-condensed-latin-500-normal.woff2) format('woff2');
+}
+/* barlow-condensed-latin-600-normal */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(./barlow-condensed-latin-600-normal.woff2) format('woff2');
+}
+/* barlow-condensed-latin-700-normal */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(./barlow-condensed-latin-700-normal.woff2) format('woff2');
+}
+/* barlow-condensed-latin-800-normal */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(./barlow-condensed-latin-800-normal.woff2) format('woff2');
+}
+/* barlow-condensed-latin-ext-500-normal */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(./barlow-condensed-latin-ext-500-normal.woff2) format('woff2');
+}
+/* barlow-condensed-latin-ext-600-normal */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(./barlow-condensed-latin-ext-600-normal.woff2) format('woff2');
+}
+/* barlow-condensed-latin-ext-700-normal */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(./barlow-condensed-latin-ext-700-normal.woff2) format('woff2');
+}
+/* barlow-condensed-latin-ext-800-normal */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url(./barlow-condensed-latin-ext-800-normal.woff2) format('woff2');
+}
+/* jetbrains-mono-latin-400-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(./jetbrains-mono-latin-400-normal.woff2) format('woff2');
+}
+/* jetbrains-mono-latin-500-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(./jetbrains-mono-latin-500-normal.woff2) format('woff2');
+}
+/* jetbrains-mono-latin-600-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(./jetbrains-mono-latin-600-normal.woff2) format('woff2');
+}
+/* jetbrains-mono-latin-700-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(./jetbrains-mono-latin-700-normal.woff2) format('woff2');
+}
+/* jetbrains-mono-latin-ext-400-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(./jetbrains-mono-latin-ext-400-normal.woff2) format('woff2');
+}
+/* jetbrains-mono-latin-ext-500-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(./jetbrains-mono-latin-ext-500-normal.woff2) format('woff2');
+}
+/* jetbrains-mono-latin-ext-600-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(./jetbrains-mono-latin-ext-600-normal.woff2) format('woff2');
+}
+/* jetbrains-mono-latin-ext-700-normal */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(./jetbrains-mono-latin-ext-700-normal.woff2) format('woff2');
+}

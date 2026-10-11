@@ -388,10 +388,8 @@
   var BEFORE_ZERO = ['凯利家族', '阿尔比恩', '布罗卡科技', 'SIRS', 'DedSec'];
   var TABS = [['档案', 'PROFILE'], ['天问', 'TIANWEN'], ['行动', 'OPS'], ['卷宗', 'FILE'], ['据点', 'BASES'], ['地图', 'MAP']];
   var FONTS = [
-    'https://testingcf.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/400.css',
-    'https://testingcf.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/700.css',
-    'https://testingcf.jsdelivr.net/npm/@fontsource/barlow-condensed@5/600.css',
-    'https://testingcf.jsdelivr.net/npm/@fontsource/barlow-condensed@5/800.css'
+    // 字体自己托管在仓库的 fonts/ 里；在酒馆里由阅读器换成 jsDelivr 上的同一份
+    new URL('../fonts/ctos.css', location.href).href
   ];
   // ══════════════════════════
 
